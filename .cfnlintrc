@@ -1,0 +1,2 @@
+ignore_checks:
+    - E3034     # Template too short

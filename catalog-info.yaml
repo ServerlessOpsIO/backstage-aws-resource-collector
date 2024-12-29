@@ -1,0 +1,16 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backstage-aws-resource-collector
+  description: Collect resources from AWS accounts
+  annotations:
+    github.com/project-slug: ServerlessOpsIO/backstage-aws-resource-collector
+spec:
+  type: api
+  lifecycle: production
+  owner: group:backstage
+  system: system:backstage
+  providesApis:
+    - resource:backstage-aws-resource-collector
+

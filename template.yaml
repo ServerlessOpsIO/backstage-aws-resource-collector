@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  Collect resources from AWS accounts
+
+Parameters:
+  Domain:
+    Type: String
+    Description: 'Application Domain'
+
+  System:
+    Type: String
+    Description: 'Application System'
+
+  Component:
+    Type: String
+    Description: 'Application Component'
+
+  CodeBranch:
+    Type: String
+    Description: "Name of deployment branch"
+
+
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 5
+    MemorySize: 128
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: !Ref AWS::StackName
+
+
+Resources:
+  # Functions
+  ListAccountsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/ListAccounts
+      Handler: function.handler
+      Description: List AWS accounts
+      Events:
+        Schedule:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(15 minutes)
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !Ref DestinationSnsTopic
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref DestinationSnsTopic
+
+
+
+
+  DestinationSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: ListAccounts Destination
+

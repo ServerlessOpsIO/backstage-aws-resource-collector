@@ -1,0 +1,13 @@
+{
+    "version": "0",
+    "id": "bb675cb9-4cf4-4e6e-8a2e-9f17d21465d8",
+    "detail-type": "Scheduled Event",
+    "source": "aws.scheduler",
+    "account": "123456789012",
+    "time": "2024-12-13T22:46:36Z",
+    "region": "us-east-1",
+    "resources": [
+        "arn:aws:scheduler:us-east-1:123456789012:schedule/default/ScheduledProcessorFunctionSchedule"
+    ],
+    "detail": "{}"
+}
