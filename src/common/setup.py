@@ -14,7 +14,8 @@ setup(
     include_package_data=True,
     install_requires=[
         'aws_lambda_powertools',
-        'boto3'
+        'boto3',
+        'boto3-stubs[organizations]',
     ],
     classifiers=[
         'Environment :: Console',

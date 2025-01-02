@@ -48,6 +48,7 @@ Resources:
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !Ref DestinationSnsTopic
+        - AWSOrganizationsReadOnlyAccess
       Environment:
         Variables:
           SNS_TOPIC_ARN: !Ref DestinationSnsTopic

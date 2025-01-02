@@ -11,13 +11,13 @@ common = {editable = true, path = "src/common"}
 aws-lambda-powertools = "*"
 
 [dev-packages]
-boto3-stubs = { extras = [  "sns",       ], version = "*"}
+boto3-stubs = { extras = [  "sns", "organizations" ], version = "*"}
 cfn-lint = "*"
 flake8 = "*"
 genson = "*"
 jsonschema = "*"
 json2python-models = "*"
-moto = { extras = [  "sns",       ], version = "*"}
+moto = { extras = [  "sns", "organizations" ], version = "*"}
 mypy = "*"
 pylint = "*"
 pytest = "*"
