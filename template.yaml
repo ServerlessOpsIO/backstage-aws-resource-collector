@@ -47,7 +47,7 @@ Resources:
             ScheduleExpression: rate(15 minutes)
       Policies:
         - SNSPublishMessagePolicy:
-            TopicName: !Ref DestinationSnsTopic
+            TopicName: !GetAtt DestinationSnsTopic.TopicName
         - AWSOrganizationsReadOnlyAccess
       Environment:
         Variables:
