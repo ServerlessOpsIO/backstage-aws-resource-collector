@@ -32,8 +32,8 @@ def _get_account_tags(accounts: List[AccountType]) -> List[AccountTypeWithTags]:
         tags = ORG_CLIENT.list_tags_for_resource(
             # Haven't seen a situation where Id is not present
             ResourceId=account.get('Id', '')
-        )
-        account_with_tags = {**account, **tags}
+        ).get('Tags')
+        account_with_tags = {**account, 'Tags': tags}
         accounts_with_tags.append(account_with_tags)
     return accounts_with_tags
 
