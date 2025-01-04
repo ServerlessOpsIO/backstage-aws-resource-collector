@@ -87,9 +87,9 @@ def _get_entity_data(account_info: AccountTypeWithTags, auth: JwtAuth) -> Entity
         'description': account_info.get('Name', ''),
         'annotations': {
             "io.serverlessops/cloud-provider": "aws",
-            'aws:account-id': account_id,
-            'aws:account-email': account_info.get('Email', ''),
-            'aws:arn': account_info.get('Arn', ''),
+            'aws.amazon.com/account-id': account_id,
+            'aws.amazon.com/account-email': account_info.get('Email', ''),
+            'aws.amazon.com/arn': account_info.get('Arn', ''),
         },
         'links': entity_links
     })
