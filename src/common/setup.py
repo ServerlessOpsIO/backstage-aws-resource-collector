@@ -16,6 +16,7 @@ setup(
         'aws_lambda_powertools',
         'boto3',
         'boto3-stubs[organizations]',
+        'dataclasses-json',
     ],
     classifiers=[
         'Environment :: Console',

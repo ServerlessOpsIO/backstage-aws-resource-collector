@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SNS Event",
+    "type": "object",
+    "properties": {
+        "Id": {
+            "type": "string"
+        },
+        "Arn": {
+            "type": "string"
+        },
+        "Email": {
+            "type": "string"
+        },
+        "Name": {
+            "type": "string"
+        },
+        "Status": {
+            "type": "string"
+        },
+        "JoinedMethod": {
+            "type": "string"
+        },
+        "JoinedTimestamp": {
+            "type": "string"
+        },
+        "Tags": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "Key": {
+                        "type": "string"
+                    },
+                    "Value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    "additionalProperties": false
+}

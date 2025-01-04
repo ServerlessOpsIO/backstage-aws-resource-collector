@@ -9,6 +9,7 @@ python_version = "3.13"
 [packages]
 common = {editable = true, path = "src/common"}
 aws-lambda-powertools = "*"
+requests = "*"
 
 [dev-packages]
 boto3-stubs = { extras = [  "sns", "organizations" ], version = "*"}
@@ -28,6 +29,7 @@ pytest-mypy = "*"
 pytest-pylint = "*"
 tox = "*"
 pytest-dotenv = "*"
+requests-mock = "*"
 
 [scripts]
 test = "pytest -vv --cov src --cov-report term-missing --cov-fail-under 95 tests"
@@ -37,4 +39,3 @@ test-ete = "pytest -vv --cov src --cov-report term-missing --cov-fail-under 95 t
 flake8 = "pytest -vv --flake8"
 pylint = "pytest -vv --pylint"
 mypy = "pytest -vv --mypy"
-

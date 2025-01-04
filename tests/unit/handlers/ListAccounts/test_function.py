@@ -202,7 +202,7 @@ def test__main(
 
 def test_handler(
     mock_fn: ModuleType,
-    mock_context,
+    mock_context: LambdaContext,
     mock_event: EventBridgeEvent,
 ):
     '''Test calling handler'''

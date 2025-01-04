@@ -20,7 +20,15 @@ Parameters:
     Type: String
     Description: "Name of deployment branch"
 
+  ClientId:
+    Type: String
+    Description: "Client ID"
+    NoEcho: true
 
+  ClientSecret:
+    Type: String
+    Description: "Client Secret"
+    NoEcho: true
 
 Globals:
   Function:
@@ -53,7 +61,21 @@ Resources:
         Variables:
           SNS_TOPIC_ARN: !Ref DestinationSnsTopic
 
-
+  AddAccountToCatalogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/AddAccountToCatalog
+      Handler: function.handler
+      Description: Add account to catalog
+      Environment:
+        Variables:
+          CLIENT_ID: !Ref ClientId
+          CLIENT_SECRET: !Ref ClientSecret
+      Events:
+        Sns:
+          Type: SNS
+          Properties:
+            Topic: !Ref DestinationSnsTopic
 
 
   DestinationSnsTopic:
