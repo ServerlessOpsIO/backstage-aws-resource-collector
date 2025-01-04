@@ -27,6 +27,7 @@ pytest-mock = "*"
 pytest-mypy = "*"
 pytest-pylint = "*"
 tox = "*"
+pytest-dotenv = "*"
 
 [scripts]
 test = "pytest -vv --cov src --cov-report term-missing --cov-fail-under 95 tests"
