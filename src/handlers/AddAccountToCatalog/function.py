@@ -65,7 +65,7 @@ def _get_entity_data(account_info: AccountTypeWithTags, auth: JwtAuth) -> Entity
     owner = _get_system_owner(system, auth)
 
     entity_spec = EntitySpec({
-        'owner': 'owner',
+        'owner': owner,
         'type': 'cloud-account',
         'system': system,
         'lifecycle': account_info.get('Status', '')
