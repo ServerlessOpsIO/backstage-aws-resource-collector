@@ -75,10 +75,10 @@ Resources:
         - SQSPollerPolicy:
             QueueName: !GetAtt DestinationSqsQueue.QueueName
       Events:
-        Sns:
+        Sqs:
           Type: SQS
           Properties:
-            Queue: !Ref DestinationSqsQueue
+            Queue: !GetAtt DestinationSqsQueue.Arn
             BatchSize: 10
 
   DestinationSqsQueue:
