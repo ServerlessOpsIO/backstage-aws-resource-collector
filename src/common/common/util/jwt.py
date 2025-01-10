@@ -37,13 +37,12 @@ class JwtAuth(AuthBase):
 
         if not response.ok:
             raise JwtRequestException()
-        
+
         self.token = response.json().get('access_token')
         expires_in = response.json().get('expires_in')
         # Current time + expiration seconds - grace period
         self.expiration = int(time()) + response.json().get('expires_in') - 120
 
     def _validate(self) -> None:
-        if (not self.token) or int(time()) > self.expiration:
+        if (not self.expiration) or int(time()) > self.expiration:
            self._fetch_jwt() 
-            
