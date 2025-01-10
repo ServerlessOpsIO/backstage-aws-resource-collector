@@ -17,10 +17,11 @@ from common.util.jwt import JwtAuth
 
 LOGGER = Logger(utc=True)
 
-CLIENT_ID = os.environ.get('CLIENT_ID', 'MUST_SET_CLIENT_ID')
-CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'MUST_SET_CLIENT_SECRET')
 CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'https://api.catalog.backstage.serverlessops.io/catalog')
 
+CLIENT_ID = os.environ.get('CLIENT_ID', 'MUST_SET_CLIENT_ID')
+CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'MUST_SET_CLIENT_SECRET')
+JWT = JwtAuth(CLIENT_ID, CLIENT_SECRET)
 
 class AddAccountToCatalogError(Exception):
     '''Add Account to Catalog Error'''
@@ -125,9 +126,8 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
 
 def _main(account_info: AccountTypeWithTags) -> None:
     '''Publish account to catalog.'''
-    auth = JwtAuth(CLIENT_ID, CLIENT_SECRET)
-    entity = _get_entity_data(account_info, auth)
-    _add_account_to_catalog(entity, auth)
+    entity = _get_entity_data(account_info, JWT)
+    _add_account_to_catalog(entity, JWT)
 
 
 @LOGGER.inject_lambda_context

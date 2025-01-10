@@ -2,6 +2,7 @@
 import json
 import jsonschema
 import os
+from time import time
 from types import ModuleType
 from typing import Generator
 
@@ -62,6 +63,7 @@ def requests_mocker() -> requests_mock.Mocker:
 
 @pytest.fixture()
 def mock_auth(
+    mocker: MockerFixture,
     requests_mocker: requests_mock.Mocker,
 ) -> Generator[JwtAuth, None, None]:
     '''Yield a JWT Auth object'''
@@ -71,7 +73,12 @@ def mock_auth(
         status_code=200,
         json={'access_token': 'token'}
     )
-    yield JwtAuth('clientId', 'clientSecret')
+
+    jwt = JwtAuth('clientId', 'clientSecret')
+    mocker.patch.object(jwt, 'token', 'jwt-token')
+    mocker.patch.object(jwt, 'expiration', int(time()) + 600)
+    
+    yield jwt
 
 
 # Function
@@ -82,10 +89,18 @@ def mock_context(function_name=FN_NAME):
 
 @pytest.fixture()
 def mock_fn(
+    mock_auth,
     requests_mocker: requests_mock.Mocker,
+    mocker: MockerFixture
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
     import src.handlers.AddAccountToCatalog.function as fn
+    
+    # NOTE: use mocker to mock any top-level variables outside of the handler function.
+    mocker.patch(
+        'src.handlers.AddAccountToCatalog.function.JWT',
+        mock_auth
+    )
 
     # We can also use requests_mocker within tests too if necxessary
     with requests_mocker:
@@ -138,7 +153,7 @@ def test__add_account_to_catalog(
     r = mock_fn._add_account_to_catalog(entity, mock_auth)
 
     assert requests_mocker.called == True
-    assert requests_mocker.call_count == 2
+    assert requests_mocker.call_count == 1
 
     assert r.ok == True
     assert r.request.method == 'PUT'
