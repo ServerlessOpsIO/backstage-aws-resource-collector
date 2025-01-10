@@ -13,7 +13,7 @@ from aws_lambda_powertools.utilities.data_classes import (
 )
 
 if TYPE_CHECKING:
-    from mypy_boto3_sns.type_defs import PublishResponseTypeDef
+    from mypy_boto3_sqs.type_defs import SendMessageResultTypeDef
 
 from common.model.account import AccountType, AccountTypeWithTags
 from common.util import JSONDateTimeEncoder
@@ -21,8 +21,8 @@ from common.util import JSONDateTimeEncoder
 LOGGER = Logger(utc=True)
 
 ORG_CLIENT = boto3.client('organizations')
-SNS_CLIENT = boto3.client('sns')
-SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', 'UNSET')
+SQS_CLIENT = boto3.client('sqs')
+SQS_QUEUE_URL = os.environ.get('SQS_QUEUE_URL', 'UNSET')
 
 
 def _get_account_tags(accounts: List[AccountType]) -> List[AccountTypeWithTags]:
@@ -56,17 +56,16 @@ def _list_all_accounts(NextToken: Optional[str] = None) -> List[AccountType]:
     return accounts
 
 
-def _publish_accounts(accounts: List[AccountTypeWithTags]) -> List['PublishResponseTypeDef']:
-    '''Publish account to SNS'''
+def _publish_accounts(accounts: List[AccountTypeWithTags]) -> List['SendMessageResultTypeDef']:
+    '''Publish account to SQS'''
     responses = []
     for account in accounts:
         LOGGER.debug('Publishing {}'.format(account.get('Id')), extra={"message_object": account})
-        response = SNS_CLIENT.publish(
-            TopicArn = SNS_TOPIC_ARN,
-            Subject = 'AWS Account',
-            Message = json.dumps(account, cls=JSONDateTimeEncoder)
+        response = SQS_CLIENT.send_message(
+            QueueUrl = SQS_QUEUE_URL,
+            MessageBody = json.dumps(account, cls=JSONDateTimeEncoder)
         )
-        LOGGER.debug('SNS Response for {}'.format(account.get('Id')), extra={"message_object": response})
+        LOGGER.debug('SQS Response for {}'.format(account.get('Id')), extra={"message_object": response})
         responses.append(response)
     return responses
 

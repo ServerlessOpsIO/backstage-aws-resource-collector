@@ -13,7 +13,7 @@ from pytest_mock import MockerFixture
 import boto3
 from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import AccountTypeDef, TagTypeDef
-from mypy_boto3_sns import SNSClient
+from mypy_boto3_sqs import SQSClient
 from moto import mock_aws
 
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
@@ -67,16 +67,17 @@ def mock_orgs_client(mocked_aws) -> Generator[OrganizationsClient, None, None]:
     yield orgs_client
 
 @pytest.fixture()
-def mock_sns_client(mocked_aws) -> Generator[SNSClient, None, None]:
-    sns_client = boto3.client('sns')
-    yield sns_client
+def mock_sqs_client(mocked_aws) -> Generator[SQSClient, None, None]:
+    sqs_client = boto3.client('sqs')
+    yield sqs_client
 
 @pytest.fixture()
-def mock_sns_topic_arn(mock_sns_client) -> str:
+def mock_sqs_queue_url(mock_sqs_client) -> str:
     '''Create a mock resource'''
-    mock_topic_name = 'MockTopic'
-    r = mock_sns_client.create_topic(Name=mock_topic_name)
-    return r.get('TopicArn')
+    mock_queue_name = 'MockQueue'
+    r = mock_sqs_client.create_queue(QueueName=mock_queue_name)
+    queue_url = mock_sqs_client.get_queue_url(QueueName=mock_queue_name).get('QueueUrl', '')
+    return queue_url
 
 @pytest.fixture()
 def mock_organization(mock_orgs_client) -> None:
@@ -133,7 +134,7 @@ def mock_context(function_name=FN_NAME):
 
 @pytest.fixture()
 def mock_fn(
-    mock_sns_topic_arn: str,
+    mock_sqs_queue_url: str,
     mocker: MockerFixture
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
@@ -141,8 +142,8 @@ def mock_fn(
 
     # NOTE: use mocker to mock any top-level variables outside of the handler function.
     mocker.patch(
-        'src.handlers.ListAccounts.function.SNS_TOPIC_ARN',
-        mock_sns_topic_arn
+        'src.handlers.ListAccounts.function.SQS_QUEUE_URL',
+        mock_sqs_queue_url
     )
 
     yield fn

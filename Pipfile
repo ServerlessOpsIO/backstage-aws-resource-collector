@@ -12,13 +12,13 @@ aws-lambda-powertools = "*"
 requests = "*"
 
 [dev-packages]
-boto3-stubs = { extras = [  "sns", "organizations" ], version = "*"}
+boto3-stubs = { extras = [  "sqs", "organizations" ], version = "*"}
 cfn-lint = "*"
 flake8 = "*"
 genson = "*"
 jsonschema = "*"
 json2python-models = "*"
-moto = { extras = [  "sns", "organizations" ], version = "*"}
+moto = { extras = [  "sqs", "organizations" ], version = "*"}
 mypy = "*"
 pylint = "*"
 pytest = "*"

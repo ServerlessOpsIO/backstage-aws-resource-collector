@@ -54,12 +54,12 @@ Resources:
           Properties:
             ScheduleExpression: rate(15 minutes)
       Policies:
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt DestinationSnsTopic.TopicName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt DestinationSqsQueue.QueueName
         - AWSOrganizationsReadOnlyAccess
       Environment:
         Variables:
-          SNS_TOPIC_ARN: !Ref DestinationSnsTopic
+          SQS_QUEUE_URL: !GetAtt DestinationSqsQueue.QueueUrl
 
   AddAccountToCatalogFunction:
     Type: AWS::Serverless::Function
@@ -71,15 +71,18 @@ Resources:
         Variables:
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !GetAtt DestinationSqsQueue.QueueName
       Events:
         Sns:
-          Type: SNS
+          Type: SQS
           Properties:
-            Topic: !Ref DestinationSnsTopic
+            Queue: !Ref DestinationSqsQueue
+            BatchSize: 10
 
-
-  DestinationSnsTopic:
-    Type: AWS::SNS::Topic
+  DestinationSqsQueue:
+    Type: AWS::SQS::Queue
     Properties:
-      DisplayName: ListAccounts Destination
-
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
