@@ -8,7 +8,7 @@ from aws_lambda_powertools.logging import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import (
     event_source,
-    SNSEvent
+    SQSEvent
 )
 
 from common.model.account import AccountTypeWithTags
@@ -131,13 +131,12 @@ def _main(account_info: AccountTypeWithTags) -> None:
 
 
 @LOGGER.inject_lambda_context
-@event_source(data_class=SNSEvent)
-def handler(event: SNSEvent, context: LambdaContext) -> None:
+@event_source(data_class=SQSEvent)
+def handler(event: SQSEvent, _: LambdaContext) -> None:
     '''Event handler'''
     LOGGER.debug('Event', extra={"message_object": event._data})
-
-    account_info = AccountTypeWithTags(**json.loads(event.record.sns.message))
-
-    _main(account_info)
+    for record in event.records:
+        account_info = AccountTypeWithTags(**json.loads(record.body))
+        _main(account_info)
 
     return

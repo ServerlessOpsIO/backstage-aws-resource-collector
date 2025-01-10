@@ -1,67 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/SNSEvent",
+    "$ref": "#/definitions/SQSEvent",
     "definitions": {
-        "SNSEntity": {
-            "required": [
-                "Signature",
-                "MessageId",
-                "Type",
-                "TopicArn",
-                "MessageAttributes",
-                "SignatureVersion",
-                "Timestamp",
-                "SigningCertUrl",
-                "Message",
-                "UnsubscribeUrl",
-                "Subject"
-            ],
-            "properties": {
-                "Message": {
-                    "type": "string"
-                },
-                "MessageAttributes": {
-                    "patternProperties": {
-                        ".*": {
-                            "additionalProperties": true,
-                            "type": "object"
-                        }
-                    },
-                    "type": "object"
-                },
-                "MessageId": {
-                    "type": "string"
-                },
-                "Signature": {
-                    "type": "string"
-                },
-                "SignatureVersion": {
-                    "type": "string"
-                },
-                "SigningCertUrl": {
-                    "type": "string"
-                },
-                "Subject": {
-                    "type": "string"
-                },
-                "Timestamp": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "TopicArn": {
-                    "type": "string"
-                },
-                "Type": {
-                    "type": "string"
-                },
-                "UnsubscribeUrl": {
-                    "type": "string"
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "SNSEvent": {
+        "SQSEvent": {
             "required": [
                 "Records"
             ],
@@ -69,7 +10,7 @@
                 "Records": {
                     "items": {
                         "$schema": "http://json-schema.org/draft-04/schema#",
-                        "$ref": "#/definitions/SNSEventRecord"
+                        "$ref": "#/definitions/SQSMessage"
                     },
                     "type": "array"
                 }
@@ -77,26 +18,98 @@
             "additionalProperties": false,
             "type": "object"
         },
-        "SNSEventRecord": {
+        "SQSMessage": {
             "required": [
-                "EventVersion",
-                "EventSubscriptionArn",
-                "EventSource",
-                "Sns"
+                "messageId",
+                "receiptHandle",
+                "body",
+                "md5OfBody",
+                "md5OfMessageAttributes",
+                "attributes",
+                "messageAttributes",
+                "eventSourceARN",
+                "eventSource",
+                "awsRegion"
             ],
             "properties": {
-                "EventSource": {
+                "attributes": {
+                    "patternProperties": {
+                        ".*": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "awsRegion": {
                     "type": "string"
                 },
-                "EventSubscriptionArn": {
+                "body": {
                     "type": "string"
                 },
-                "EventVersion": {
+                "eventSource": {
                     "type": "string"
                 },
-                "Sns": {
-                    "$schema": "http://json-schema.org/draft-04/schema#",
-                    "$ref": "#/definitions/SNSEntity"
+                "eventSourceARN": {
+                    "type": "string"
+                },
+                "md5OfBody": {
+                    "type": "string"
+                },
+                "md5OfMessageAttributes": {
+                    "type": "string"
+                },
+                "messageAttributes": {
+                    "patternProperties": {
+                        ".*": {
+                            "$schema": "http://json-schema.org/draft-04/schema#",
+                            "$ref": "#/definitions/SQSMessageAttribute"
+                        }
+                    },
+                    "type": "object"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "receiptHandle": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "SQSMessageAttribute": {
+            "required": [
+                "stringListValues",
+                "binaryListValues",
+                "dataType"
+            ],
+            "properties": {
+                "binaryListValues": {
+                    "items": {
+                        "type": "string",
+                        "media": {
+                            "binaryEncoding": "base64"
+                        }
+                    },
+                    "type": "array"
+                },
+                "binaryValue": {
+                    "type": "string",
+                    "media": {
+                        "binaryEncoding": "base64"
+                    }
+                },
+                "dataType": {
+                    "type": "string"
+                },
+                "stringListValues": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "stringValue": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false,

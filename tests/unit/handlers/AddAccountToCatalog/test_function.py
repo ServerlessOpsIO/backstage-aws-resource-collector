@@ -10,11 +10,10 @@ import pytest
 from pytest_mock import MockerFixture
 import requests_mock
 
-from aws_lambda_powertools.utilities.data_classes import SNSEvent
+from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.account import AccountTypeWithTags
-from common.model.entity import Entity
 from common.test.aws import create_lambda_function_context
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
 
@@ -43,10 +42,10 @@ def data_schema(schema=DATA_SCHEMA):
         return json.load(f)
 
 @pytest.fixture()
-def mock_event(e=EVENT) -> SNSEvent:
+def mock_event(e=EVENT) -> SQSEvent:
     '''Return a function event'''
     with open(e) as f:
-        return SNSEvent(json.load(f))
+        return SQSEvent(json.load(f))
 
 @pytest.fixture()
 def event_schema(schema=EVENT_SCHEMA):
@@ -77,7 +76,7 @@ def mock_auth(
     jwt = JwtAuth('clientId', 'clientSecret')
     mocker.patch.object(jwt, 'token', 'jwt-token')
     mocker.patch.object(jwt, 'expiration', int(time()) + 600)
-    
+
     yield jwt
 
 
@@ -95,7 +94,7 @@ def mock_fn(
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
     import src.handlers.AddAccountToCatalog.function as fn
-    
+
     # NOTE: use mocker to mock any top-level variables outside of the handler function.
     mocker.patch(
         'src.handlers.AddAccountToCatalog.function.JWT',
@@ -266,7 +265,7 @@ def test_handler(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
     mock_data: AccountTypeWithTags,
-    mock_event: SNSEvent,
+    mock_event: SQSEvent,
     mocker: MockerFixture
 ):
     '''Test calling handler'''
@@ -284,5 +283,5 @@ def test_handler(
         return_value='owner'
     )
 
-    mock_event._data['Records'][0]['Sns']['Message'] = json.dumps(mock_data)
+    mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
     mock_fn.handler(mock_event, mock_context)
