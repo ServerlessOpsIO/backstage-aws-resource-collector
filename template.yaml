@@ -33,7 +33,6 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.13
-    Timeout: 5
     MemorySize: 128
     Environment:
       Variables:
@@ -48,6 +47,7 @@ Resources:
       CodeUri: ./src/handlers/ListAccounts
       Handler: function.handler
       Description: List AWS accounts
+      Timeout: 15
       Events:
         Schedule:
           Type: ScheduleV2
@@ -67,6 +67,7 @@ Resources:
       CodeUri: ./src/handlers/AddAccountToCatalog
       Handler: function.handler
       Description: Add account to catalog
+      Timeout: 5
       Environment:
         Variables:
           CLIENT_ID: !Ref ClientId
