@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Grant collector accounts access to AWS Organizations
+
+Parameters:
+  CollectorAccounts:
+    Type: CommaDelimitedList
+    Description: Comma separated list of OUs
+
+Resources:
+  OrgAccessPolicy:
+    Type: AWS::Organizations::ResourcePolicy
+    Properties:
+      Content:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowDescribeOrganization
+            Effect: Allow
+            Principal:
+              AWS: !Ref CollectorAccounts
+            Action:
+              - 'organizations:DescribeOrganization'
+              - 'organizations:ListAccounts'
+              - 'organizations:ListTagsForResource'
+            Resource: '*'
