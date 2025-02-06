@@ -22,6 +22,8 @@ Resources:
             # Really should be scoped to a specific role but I suspect we'll end up with many
             # roles, one per resource type, so this is I think fine from a long-term view.
             # However the condition must never be deleted!
+            Principal:
+              AWS: '*'
             Action:
               - sts:AssumeRole
               - sts:TagSession
