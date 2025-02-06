@@ -90,6 +90,23 @@ Resources:
       VisibilityTimeout: 120
       MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
 
+  AddAccountToCatalogFunctionSqsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref AddAccountToCatalogFunctionSqsQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt AddAccountToCatalogFunctionSqsQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt ListAccountsSnsTopic.TopicArn
+
   AddAccountToCatalogFunctionSnsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
