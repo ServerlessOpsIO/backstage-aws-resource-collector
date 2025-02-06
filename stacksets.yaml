@@ -25,7 +25,7 @@ Resources:
   CrossAccountIamRoleStackSets:
     Type: AWS::CloudFormation::StackSet
     Properties:
-      StackSetName: CrossAccountIamRole
+      StackSetName: BackstageCrossAccountIamRole
       Description: Cross Account Role for AWS Resource Collector
       Parameters:
         - ParameterKey: CollectorAccounts
