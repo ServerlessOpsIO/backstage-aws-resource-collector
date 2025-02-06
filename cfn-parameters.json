@@ -6,7 +6,7 @@
     "CodeBranch": $env.GITHUB_REF_SLUG_CS,
     "ClientId": $secrets.CATALOG_CLIENT_ID,
     "ClientSecret": $secrets.CATALOG_CLIENT_SECRET,
-    "CollectorAccounts": $secrets.COLLECTOR_ACCOUNTS,
+    "CollectorAccounts": $secrets.DEPLOYMENT_ACCOUNT_ID,
     "TargetOu": $secrets.AWS_ORG_ROOT_ID,
     "TargetRegions": "us-east-1",
     "AwsOrganizationId": $secrets.AWS_ORG_ID,
