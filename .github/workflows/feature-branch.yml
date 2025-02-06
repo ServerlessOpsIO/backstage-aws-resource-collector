@@ -128,3 +128,35 @@ jobs:
           secrets_json: ${{ toJson(secrets) }}
           stack_name: "${{ env.GITHUB_REPOSITORY_NAME_PART_SLUG_URL }}-${{ env.GITHUB_EVENT_REF_SLUG_URL }}-stacksets"
           template_file: packaged-stacksets.yaml
+
+  deploy_management:
+    needs:
+      - build
+
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v1
+        with:
+          checkout_artifact: true
+
+      - name: Assume AWS credentials
+        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
+        with:
+          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
+          deploy_aws_account_id: ${{ secrets.AWS_MANAGEMENT_ACCOUNT_ID }}
+
+      - name: Deploy via AWS SAM
+        uses: ServerlessOpsIO/gha-deploy-aws-sam@v1
+        with:
+          aws_account_id: ${{ secrets.AWS_MANAGEMENT_ACCOUNT_ID }}
+          env_json: ${{ toJson(env) }}
+          vars_json: ${{ toJson(vars) }}
+          secrets_json: ${{ toJson(secrets) }}
+          stack_name: "${{ env.GITHUB_REPOSITORY_NAME_PART_SLUG_URL }}-${{ env.GITHUB_EVENT_REF_SLUG_URL }}-management"
+          template_file: stacksets/cross-account-iam-role/template.yaml
