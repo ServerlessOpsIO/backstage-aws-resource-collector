@@ -11,10 +11,15 @@ Parameters:
     Type: String
     Description: AWS Organization ID
 
+  CrossAccountRoleName:
+    Type: String
+    Description: Name of the cross-account role
+
 Resources:
   CrossAccountRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Ref CrossAccountRoleName
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:

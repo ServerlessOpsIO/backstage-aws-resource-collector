@@ -20,6 +20,9 @@ Parameters:
   AwsOrganizationId:
     Type: String
     Description: AWS Organization ID
+  CrossAccountRoleName:
+    Type: String
+    Description: Name of the cross-account role
 
 Resources:
   CrossAccountIamRoleStackSets:
@@ -32,6 +35,8 @@ Resources:
           ParameterValue: !Ref CollectorAccounts
         - ParameterKey: AwsOrganizationId
           ParameterValue: !Ref AwsOrganizationId
+        - ParameterKey: CrossAccountRoleName
+          ParameterValue: !Ref CrossAccountRoleName
       Capabilities:
         - CAPABILITY_NAMED_IAM
       StackInstancesGroup:

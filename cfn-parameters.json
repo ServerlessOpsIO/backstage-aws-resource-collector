@@ -9,5 +9,6 @@
     "CollectorAccounts": $secrets.COLLECTOR_ACCOUNTS,
     "TargetOu": $secrets.AWS_ORG_ROOT_ID,
     "TargetRegions": "us-east-1",
-    "AwsOrganizationId": $secrets.AWS_ORG_ID
+    "AwsOrganizationId": $secrets.AWS_ORG_ID,
+    "CrossAccountRoleName": "BackstageCrossAccountRole"
 }
