@@ -1,0 +1,51 @@
+Metadata:
+  CrossAccountIamRoleStackSets:
+    localTemplateFile: &cross_account_template_body ./stacksets/cross-account-iam-role/template.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - 'AWS::Serverless-2016-10-31'
+Description: AWS Resource Collector StackSets
+
+Parameters:
+  CollectorAccounts:
+    Type: String    # We pass in here as a string and convert to list in the StqckSet
+    Description: Comma separated list of OUs
+  TargetOu:
+    Type: CommaDelimitedList
+    Description: 'Application Domain'
+  TargetRegions:
+    Type: CommaDelimitedList
+    Description: Comma separated list of regions
+  AwsOrganizationId:
+    Type: String
+    Description: AWS Organization ID
+
+Resources:
+  CrossAccountIamRoleStackSets:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: CrossAccountIamRole
+      Description: Cross Account Role for AWS Resource Collector
+      Parameters:
+        - ParameterKey: CollectorAccounts
+          ParameterValue: !Ref CollectorAccounts
+        - ParameterKey: AwsOrganizationId
+          ParameterValue: !Ref AwsOrganizationId
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      StackInstancesGroup:
+        - DeploymentTargets:
+            OrganizationalUnitIds: !Ref TargetOu
+          Regions: !Ref TargetRegions
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: false
+      ManagedExecution:
+        Active: true
+      OperationPreferences:
+        RegionConcurrencyType: PARALLEL
+        FailureToleranceCount: 1
+        MaxConcurrentCount: 5
+      PermissionModel: SERVICE_MANAGED
+      TemplateBody: *cross_account_template_body

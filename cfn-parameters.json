@@ -5,5 +5,9 @@
     "Component": $env.GITHUB_REPOSITORY_NAME_PART_SLUG_CS,
     "CodeBranch": $env.GITHUB_REF_SLUG_CS,
     "ClientId": $secrets.CATALOG_CLIENT_ID,
-    "ClientSecret": $secrets.CATALOG_CLIENT_SECRET
+    "ClientSecret": $secrets.CATALOG_CLIENT_SECRET,
+    "CollectorAccounts": $secrets.COLLECTOR_ACCOUNTS,
+    "TargetOu": $secrets.AWS_ORG_ROOT_ID,
+    "TargetRegions": "us-east-1",
+    "AwsOrganizationId": $secrets.AWS_ORG_ID
 }

@@ -36,8 +36,32 @@ jobs:
       - name: Validate template
         run: sam validate --lint
 
+      - name: Validate artifact (validate stackset)
+        run: sam validate --lint -t stacksets/cross-account-iam-role/template.yaml
+
+      - name: Synethsize StackSet templates
+        run: |
+          for _f in $(find . -type f -name 'stacksets.yaml'); do
+            _dir="$(dirname $_f)/" \
+            yq \
+              -i \
+              '(.. | select(has("localTemplateFile")) | .localTemplateFile) |= load_str(strenv(_dir) + .)' \
+              $_f;
+          done
+
       - name: Build deployment artifact
         run: sam build
+
+      - name: Upload SAM artifact (stacksets)
+        id: upload-sam-stackset-build-template
+        shell: bash
+        run: |
+          sam package \
+            --template stacksets.yaml \
+            --s3-bucket aws-sam-cli-sourcebucket-225989329251-us-east-1  \
+            --s3-prefix ${{ env.GITHUB_REPOSITORY_OWNER_PART_SLUG_URL }}/${{ env.GITHUB_REPOSITORY_NAME_PART_SLUG_URL }}/${{ env.GITHUB_REF_SLUG_URL }} \
+            --region us-east-1 \
+            --output-template-file packaged-stacksets.yaml
 
       - name: Store artifacts
         uses: ServerlessOpsIO/gha-store-artifacts@v1
@@ -72,3 +96,35 @@ jobs:
           aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
           env_json: ${{ toJson(env) }}
           secrets_json: ${{ toJson(secrets) }}
+
+  deploy_stacksets:
+    needs:
+      - build
+
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v1
+        with:
+          checkout_artifact: true
+
+      - name: Assume AWS credentials
+        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
+        with:
+          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
+          deploy_aws_account_id: ${{ secrets.AWS_MANAGEMENT_ACCOUNT_ID }}
+
+      - name: Deploy via AWS SAM
+        uses: ServerlessOpsIO/gha-deploy-aws-sam@v1
+        with:
+          aws_account_id: ${{ secrets.AWS_MANAGEMENT_ACCOUNT_ID }}
+          env_json: ${{ toJson(env) }}
+          vars_json: ${{ toJson(vars) }}
+          secrets_json: ${{ toJson(secrets) }}
+          stack_name: "${{ env.GITHUB_REPOSITORY_NAME_PART_SLUG_URL }}-${{ env.GITHUB_EVENT_REF_SLUG_URL }}-stacksets"
+          template_file: packaged-stacksets.yaml

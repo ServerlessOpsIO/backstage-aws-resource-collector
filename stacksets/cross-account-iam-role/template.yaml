@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Cross-account role for AWS Resource Collector
+
+Parameters:
+  CollectorAccounts:
+    Type: CommaDelimitedList
+    Description: Comma separated list of OUs
+
+  AwsOrganizationId:
+    Type: String
+    Description: AWS Organization ID
+
+Resources:
+  CrossAccountRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            # Really should be scoped to a specific role but I suspect we'll end up with many
+            # roles, one per resource type, so this is I think fine from a long-term view.
+            # However the condition must never be deleted!
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+            # WARNING: This is a critical condition that must never be removed!
+            Condition:
+              StringEquals:
+                "aws:SourceOrgID":
+                  - !Ref AwsOrganizationId
+                "aws:SourceAccount": !Ref CollectorAccounts
+
+      Policies:
+        - PolicyName: DescribeCfnStacks
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:DescribeStack*
+                Resource: "*"
+        - PolicyName: DescribeEcs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:Describe*
+                Resource: "*"
