@@ -188,8 +188,7 @@ Resources:
             QueueName: !GetAtt AddEntityToCatalogSqsQueue.QueueName
         - Version: '2012-10-17'
           Statement:
-            - Sid: test
-              Effect: Allow
+            - Effect: Allow
               Action:
                 - sts:AssumeRole
               Resource: !Sub arn:aws:iam::*:role/${CrossAccountRoleName}
