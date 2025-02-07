@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5910c22fe9c507d449db4e40caf432eb6fd7e6fae0caa4b6873176611eb0dd59"
+            "sha256": "9ed752c1e017dcf0e36c04807de1d8c984a58cb6ddd7b3e990b5f4deb9a12be0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -890,6 +890,7 @@
         },
         "moto": {
             "extras": [
+                "ecs",
                 "organizations",
                 "sns",
                 "sqs"
@@ -946,6 +947,14 @@
             "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==1.15.0"
+        },
+        "mypy-boto3-ecs": {
+            "hashes": [
+                "sha256:6e91348b0b5592c5f607233b0d257e63cd5ebfc325f3de9673d15c8991268dd0",
+                "sha256:84a760bdd2f6b9d02166f9c875c5c596c799dfac00848263ce2956af69c5fe80"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.36.1"
         },
         "mypy-boto3-organizations": {
             "hashes": [

@@ -1,11 +1,11 @@
 '''ServerlessOps / Backstage Catalog entity'''
-from typing import Dict, List, Optional, TypedDict, DefaultDict
+from typing import Dict, List, NotRequired, TypedDict
 
 class EntityMetaLink(TypedDict):
     url: str
-    title: Optional[str]
-    icon: Optional[str]
-    type: Optional[str]
+    title: NotRequired[str]
+    icon: NotRequired[str]
+    type: NotRequired[str]
 
 class EntityMetaLinks(List[EntityMetaLink]): pass
 
@@ -15,7 +15,7 @@ class EntityMeta(TypedDict):
     title: str
     description: str
     annotations: Dict[str, str]
-    links: EntityMetaLinks
+    links: NotRequired[EntityMetaLinks]
 
 class EntitySpec(TypedDict):
     owner: str

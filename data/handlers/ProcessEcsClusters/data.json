@@ -1,0 +1,23 @@
+{
+    "Id": "123456789012",
+    "Arn": "arn:aws:organizations::123456789012:account/o-q4ulo3gwzx/123456789012",
+    "Email": "master@example.com",
+    "Name": "master",
+    "Status": "ACTIVE",
+    "JoinedMethod": "CREATED",
+    "JoinedTimestamp": "2025-01-03T15:21:04.065434-05:00",
+    "Tags": [
+        {
+            "Key": "org:system",
+            "Value": "mock_system"
+        },
+        {
+            "Key": "org:domain",
+            "Value": "mock_domain"
+        },
+        {
+            "Key": "org:owner",
+            "Value": "group:mock_group"
+        }
+    ]
+}
