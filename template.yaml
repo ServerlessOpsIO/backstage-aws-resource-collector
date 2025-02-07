@@ -200,6 +200,69 @@ Resources:
             BatchSize: 1
 
 
+  # Process VPCs
+  ProcessVpcsSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
+
+  ProcessVpcsSqsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ProcessVpcsSqsQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt ProcessVpcsSqsQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt ListAccountsSnsTopic.TopicArn
+
+  ProcessVpcsSubscribeQueueToTopic:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Ref ListAccountsSnsTopic
+      Endpoint: !GetAtt ProcessVpcsSqsQueue.Arn
+      RawMessageDelivery: true
+
+  ProcessVpcsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/ProcessVpcs
+      Handler: function.handler
+      Description: Process VPCs
+      Timeout: 5
+      Environment:
+        Variables:
+          CROSS_ACCOUNT_IAM_ROLE_NAME: !Ref CrossAccountRoleName
+          CATALOG_ENDPOINT: !Ref CatalogEndpoint
+          CLIENT_ID: !Ref ClientId
+          CLIENT_SECRET: !Ref ClientSecret
+          SQS_QUEUE_URL: !GetAtt AddEntityToCatalogSqsQueue.QueueUrl
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt AddEntityToCatalogSqsQueue.QueueName
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: !Sub arn:aws:iam::*:role/${CrossAccountRoleName}
+      Events:
+        Sqs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProcessVpcsSqsQueue.Arn
+            BatchSize: 1
+
+
   ###
   # Add to Catalog
   ###

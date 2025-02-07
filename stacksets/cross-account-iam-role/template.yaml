@@ -58,3 +58,11 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:ListTagsForResource
                 Resource: "*"
+        - PolicyName: DescribeVpcs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeVpcs
+                Resource: "*"

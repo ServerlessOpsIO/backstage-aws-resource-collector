@@ -106,7 +106,7 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
     )
 
     if not r.ok:
-        LOGGER.error('Failed to get system owner', extra={'response': r.text})
+        LOGGER.error('Failed to get system owner', extra={'response': r.__dict__})
         raise GetSystemOwnerError(system)
 
     return r.json().get('spec', {}).get('owner', 'UNKNOWN')
