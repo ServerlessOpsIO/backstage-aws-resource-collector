@@ -31,7 +31,7 @@ CROSS_ACCOUNT_IAM_ROLE_NAME = os.environ.get('CROSS_ACCOUNT_IAM_ROLE_NAME', '')
 SQS_QUEUE_URL = os.environ.get('SQS_QUEUE_URL', 'MUST_SET_SQS_QUEUE_URL')
 
 # Catalog
-CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'https://api.catalog.backstage.serverlessops.io/catalog')
+CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'MUST_SET_CATALOG_ENDPOINT')
 CLIENT_ID = os.environ.get('CLIENT_ID', 'MUST_SET_CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'MUST_SET_CLIENT_SECRET')
 JWT = JwtAuth(CLIENT_ID, CLIENT_SECRET)
