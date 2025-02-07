@@ -20,6 +20,10 @@ Parameters:
     Type: String
     Description: "Name of deployment branch"
 
+  CatalogEndpoint:
+    Type: String
+    Description: "Catalog endpoint"
+
   ClientId:
     Type: String
     Description: "Client ID"
@@ -40,7 +44,9 @@ Globals:
 
 
 Resources:
-  # Functions
+  ###
+  # List AWS accounts
+  ###
   ListAccountsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -66,35 +72,23 @@ Resources:
     Properties:
       DisplayName: ListAccounts Destination
 
-  AddAccountToCatalogFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/handlers/AddAccountToCatalog
-      Handler: function.handler
-      Description: Add account to catalog
-      Timeout: 5
-      Environment:
-        Variables:
-          CLIENT_ID: !Ref ClientId
-          CLIENT_SECRET: !Ref ClientSecret
-      Events:
-        Sqs:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt AddAccountToCatalogFunctionSqsQueue.Arn
-            BatchSize: 10
 
-  AddAccountToCatalogFunctionSqsQueue:
+  ###
+  # Process resources
+  ###
+
+  # Process accounts
+  ProcessAccountSqsQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 120
       MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
 
-  AddAccountToCatalogFunctionSqsQueuePolicy:
+  ProcessAccountSqsQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref AddAccountToCatalogFunctionSqsQueue
+        - !Ref ProcessAccountSqsQueue
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -102,15 +96,68 @@ Resources:
             Principal:
               Service: sns.amazonaws.com
             Action: sqs:SendMessage
-            Resource: !GetAtt AddAccountToCatalogFunctionSqsQueue.Arn
+            Resource: !GetAtt ProcessAccountSqsQueue.Arn
             Condition:
               ArnEquals:
                 aws:SourceArn: !GetAtt ListAccountsSnsTopic.TopicArn
 
-  AddAccountToCatalogFunctionSnsSubscription:
+  ProcessAccountSubscribeQueueToTopic:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: sqs
       TopicArn: !Ref ListAccountsSnsTopic
-      Endpoint: !GetAtt AddAccountToCatalogFunctionSqsQueue.Arn
+      Endpoint: !GetAtt ProcessAccountSqsQueue.Arn
       RawMessageDelivery: true
+
+  ProcessAccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/ProcessAccount
+      Handler: function.handler
+      Description: process account entity
+      Timeout: 5
+      Environment:
+        Variables:
+          CATALOG_ENDPOINT: !Ref CatalogEndpoint
+          CLIENT_ID: !Ref ClientId
+          CLIENT_SECRET: !Ref ClientSecret
+          SQS_QUEUE_URL: !GetAtt AddEntityToCatalogSqsQueue.QueueUrl
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt AddEntityToCatalogSqsQueue.QueueName
+      Events:
+        Sqs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProcessAccountSqsQueue.Arn
+            BatchSize: 10
+
+
+  ###
+  # Add to Catalog
+  ###
+  AddEntityToCatalogSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
+
+  AddEntityToCatalogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/AddEntityToCatalog
+      Handler: function.handler
+      Description: Add entity to catalog
+      Timeout: 5
+      Environment:
+        Variables:
+          CATALOG_ENDPOINT: !Ref CatalogEndpoint
+          CLIENT_ID: !Ref ClientId
+          CLIENT_SECRET: !Ref ClientSecret
+      Events:
+        Sqs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
+            BatchSize: 10
+

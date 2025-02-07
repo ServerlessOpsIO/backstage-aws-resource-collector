@@ -1,9 +1,10 @@
-
-'''Add account to catalog'''
+'''process account entity'''
 import os
 import json
 import requests
+from typing import TYPE_CHECKING
 
+import boto3
 from aws_lambda_powertools.logging import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import (
@@ -11,22 +12,22 @@ from aws_lambda_powertools.utilities.data_classes import (
     SQSEvent
 )
 
+if TYPE_CHECKING:
+    from mypy_boto3_sqs.type_defs import SendMessageResultTypeDef
+
 from common.model.account import AccountTypeWithTags
 from common.model.entity import Entity, EntityMeta, EntityMetaLinks, EntitySpec
 from common.util.jwt import JwtAuth
 
 LOGGER = Logger(utc=True)
+SQS_CLIENT = boto3.client('sqs')
+SQS_QUEUE_URL = os.environ.get('SQS_QUEUE_URL', 'MUST_SET_SQS_QUEUE_URL')
 
-CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'https://api.catalog.backstage.serverlessops.io/catalog')
-
+CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'MUST_SET_CATALOG_ENDPOINT')
 CLIENT_ID = os.environ.get('CLIENT_ID', 'MUST_SET_CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'MUST_SET_CLIENT_SECRET')
 JWT = JwtAuth(CLIENT_ID, CLIENT_SECRET)
 
-class AddAccountToCatalogError(Exception):
-    '''Add Account to Catalog Error'''
-    def __init__(self, account_id) -> None:
-        super().__init__('Failed to add account to catalog: {}'.format(account_id))
 
 class GetSystemOwnerError(Exception):
     '''Get System Owner Error'''
@@ -34,26 +35,13 @@ class GetSystemOwnerError(Exception):
         super().__init__('Failed to get owner for system: {}'.format(system))
 
 
-def _add_account_to_catalog(entity: Entity, auth: JwtAuth) -> requests.Response:
-    '''Add account to catalog'''
-    r = requests.put(
-        '/'.join([
-            CATALOG_ENDPOINT,
-            entity['metadata']['namespace'],
-            entity['kind'].lower(),
-            entity['metadata']['name']
-        ]),
-        headers={
-            'Content-Type': 'application/json'
-        },
-        json=entity,
-        auth=auth
+def _send_queue_message(entity: Entity) -> 'SendMessageResultTypeDef':
+    '''Send message to SQS'''
+    sqs = boto3.client('sqs')
+    r = sqs.send_message(
+        QueueUrl=SQS_QUEUE_URL,
+        MessageBody=json.dumps(entity)
     )
-
-    if not r.ok:
-        LOGGER.error('Failed to add account to catalog', extra={'response': r.text})
-        raise AddAccountToCatalogError(entity['metadata']['title'])
-
     return r
 
 
@@ -127,7 +115,7 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
 def _main(account_info: AccountTypeWithTags) -> None:
     '''Publish account to catalog.'''
     entity = _get_entity_data(account_info, JWT)
-    _add_account_to_catalog(entity, JWT)
+    _send_queue_message(entity)
 
 
 @LOGGER.inject_lambda_context

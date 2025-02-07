@@ -1,4 +1,4 @@
-'''Test ListAccounts'''
+'''Test AddEntityToCatalog'''
 import json
 import jsonschema
 import os
@@ -13,11 +13,11 @@ import requests_mock
 from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-from common.model.account import AccountTypeWithTags
+from common.model.entity import Entity
 from common.test.aws import create_lambda_function_context
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
 
-FN_NAME = 'AddAccountToCatalog'
+FN_NAME = 'AddEntityToCatalog'
 DATA_DIR = './data'
 FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
 EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
@@ -30,10 +30,10 @@ DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'data.schema.json')
 # FIXME: Need to handle differences between powertools event classes and the Event class
 # Event
 @pytest.fixture()
-def mock_data(e=DATA) -> AccountTypeWithTags:
+def mock_data(e=DATA) -> Entity:
     '''Return event data object'''
     with open(e) as f:
-        return AccountTypeWithTags(**json.load(f))
+        return Entity(**json.load(f))
 
 @pytest.fixture()
 def data_schema(schema=DATA_SCHEMA):
@@ -59,6 +59,11 @@ def requests_mocker() -> requests_mock.Mocker:
     # NOTE: Use as a decerator with Python 3 appears broken so use fixture.
     # ref. https://github.com/pytest-dev/pytest/issues/2749
     return requests_mock.Mocker()
+
+@pytest.fixture()
+def mock_endpoint() -> str:
+    '''Return a mock endpoint'''
+    return 'https://api.example.com/catalog'
 
 @pytest.fixture()
 def mock_auth(
@@ -88,17 +93,23 @@ def mock_context(function_name=FN_NAME):
 
 @pytest.fixture()
 def mock_fn(
-    mock_auth,
+    mock_endpoint: str,
+    mock_auth: JwtAuth,
     requests_mocker: requests_mock.Mocker,
     mocker: MockerFixture
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
-    import src.handlers.AddAccountToCatalog.function as fn
+    import src.handlers.AddEntityToCatalog.function as fn
 
     # NOTE: use mocker to mock any top-level variables outside of the handler function.
     mocker.patch(
-        'src.handlers.AddAccountToCatalog.function.JWT',
+        'src.handlers.AddEntityToCatalog.function.JWT',
         mock_auth
+    )
+
+    mocker.patch(
+        'src.handlers.AddEntityToCatalog.function.CATALOG_ENDPOINT',
+        mock_endpoint
     )
 
     # We can also use requests_mocker within tests too if necxessary
@@ -122,45 +133,35 @@ def test_validate_event(mock_event, event_schema):
 
 
 ### Code Tests
-def test_AddAccountToCatalogError(mock_fn: ModuleType):
-    '''Test AddAccountToCatalogError class'''
-    e = mock_fn.AddAccountToCatalogError('account_id')
+def test_AddEntityToCatalogError(mock_fn: ModuleType):
+    '''Test AddEntityToCatalogError class'''
+    e = mock_fn.AddEntityToCatalogError('account_id')
     assert str(e) == 'Failed to add account to catalog: account_id'
 
-def test__add_account_to_catalog(
+def test__add_entity_to_catalog(
     mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
+    mock_data: Entity,
+    mock_endpoint: str,
     mock_auth: JwtAuth,
     requests_mocker: requests_mock.Mocker,
 ):
-    '''Test _add_account_to_catalog function'''
-    entity = {
-        'apiVersion': 'backstage.io/v1alpha1',
-        'kind': 'Resource',
-        'metadata': {
-            'namespace': 'default',
-            'name': 'aws-{}'.format(mock_data.get('Id')),
-            'title': mock_data.get('Id'),
-            'description': mock_data.get('Name'),
-        },
-        'spec': {
-            'owner': 'owner',
-            'type': 'cloud-account',
-            'lifecycle': 'ACTIVE'
-        }
-    }
-    r = mock_fn._add_account_to_catalog(entity, mock_auth)
+    r = mock_fn._add_entity_to_catalog(mock_data, mock_auth)
 
     assert requests_mocker.called == True
     assert requests_mocker.call_count == 1
-
     assert r.ok == True
     assert r.request.method == 'PUT'
-    assert r.request.url == 'https://api.catalog.backstage.serverlessops.io/catalog/default/resource/aws-{}'.format(mock_data.get('Id'))
+    assert r.request.url == '{}/{}/{}/{}'.format(
+        mock_endpoint,
+        mock_data['metadata']['namespace'],
+        mock_data['kind'].lower(),
+        mock_data['metadata']['name']
+    )
 
-def test__add_account_to_catalog_fails(
+
+def test__add_entity_to_catalog_fails(
     mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
+    mock_data: Entity,
     mock_auth: JwtAuth,
     requests_mocker: requests_mock.Mocker,
 ):
@@ -171,77 +172,13 @@ def test__add_account_to_catalog_fails(
         status_code=403,
     )
 
-    with pytest.raises(mock_fn.AddAccountToCatalogError):
-        entity = {
-            'apiVersion': 'backstage.io/v1alpha1',
-            'kind': 'Resource',
-            'metadata': {
-                'namespace': 'default',
-                'name': 'aws-{}'.format(mock_data.get('Id')),
-                'title': mock_data.get('Id'),
-                'description': mock_data.get('Name'),
-            },
-            'spec': {
-                'owner': 'owner',
-                'type': 'cloud-account',
-                'lifecycle': 'ACTIVE'
-            }
-        }
-        mock_fn._add_account_to_catalog(entity, mock_auth)
-
-
-def test__get_entity_data(
-    mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
-    mock_auth: JwtAuth,
-    mocker: MockerFixture
-):
-    '''Test _get_entity_data function'''
-    mocker.patch(
-        'src.handlers.AddAccountToCatalog.function._get_system_owner',
-        return_value='owner'
-    )
-    entity = mock_fn._get_entity_data(mock_data, mock_auth)
-    assert entity['metadata']['name'] == 'aws-{}'.format(mock_data.get('Id'))
-    assert entity['metadata']['title'] == mock_data.get('Id')
-    assert entity['metadata']['description'] == mock_data.get('Name')
-    assert entity['spec']['owner'] == 'owner'
-    assert entity['spec']['type'] == 'cloud-account'
-    assert entity['spec']['lifecycle'] == 'ACTIVE'
-
-def test__get_system_owner(
-    mock_fn: ModuleType,
-    mock_auth: AccountTypeWithTags,
-    requests_mocker: requests_mock.Mocker,
-):
-    '''Test _get_system_owner function'''
-    requests_mocker.register_uri(
-        requests_mock.GET,
-        requests_mock.ANY,
-        status_code=200,
-        json={'spec': {'owner': 'owner'}}
-    )
-    owner = mock_fn._get_system_owner('mock_system', mock_auth,)
-    assert owner == 'owner'
-
-def test__get_system_owner_fails(
-    mock_fn: ModuleType,
-    mock_auth: AccountTypeWithTags,
-    requests_mocker: requests_mock.Mocker,
-):
-    '''Test _get_system_owner function'''
-    requests_mocker.register_uri(
-        requests_mock.GET,
-        requests_mock.ANY,
-        status_code=403,
-    )
-    with pytest.raises(mock_fn.GetSystemOwnerError):
-        mock_fn._get_system_owner('mock_system', mock_auth,)
+    with pytest.raises(mock_fn.AddEntityToCatalogError):
+        mock_fn._add_entity_to_catalog(mock_data, mock_auth)
 
 
 def test__main(
     mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
+    mock_data: Entity,
     mocker: MockerFixture
 ):
     '''Test _main function'''
@@ -253,18 +190,13 @@ def test__main(
         token='token'
     )
 
-    mocker.patch(
-        'src.handlers.AddAccountToCatalog.function._get_system_owner',
-        return_value='owner'
-    )
-
     mock_fn._main(mock_data)
 
 
 def test_handler(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
-    mock_data: AccountTypeWithTags,
+    mock_data: Entity,
     mock_event: SQSEvent,
     mocker: MockerFixture
 ):
@@ -276,11 +208,6 @@ def test_handler(
         client_id='clientId',
         client_secret='clientSecret',
         token='token'
-    )
-
-    mocker.patch(
-        'src.handlers.AddAccountToCatalog.function._get_system_owner',
-        return_value='owner'
     )
 
     mock_event._data['Records'][0]['body'] = json.dumps(mock_data)

@@ -4,6 +4,7 @@
     "System": "backstage",
     "Component": $env.GITHUB_REPOSITORY_NAME_PART_SLUG_CS,
     "CodeBranch": $env.GITHUB_REF_SLUG_CS,
+    "CatalogEndpoint": "https://api.catalog.backstage.serverlessops.io/catalog",
     "ClientId": $secrets.CATALOG_CLIENT_ID,
     "ClientSecret": $secrets.CATALOG_CLIENT_SECRET,
     "CollectorAccounts": $secrets.DEPLOYMENT_ACCOUNT_ID,
