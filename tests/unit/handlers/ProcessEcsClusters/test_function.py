@@ -220,7 +220,7 @@ def test__create_ecs_cluster_entity(
     region, account_id = mock_ecs_cluster.get('clusterArn', '').split(':')[3:5]
     entity = mock_fn._create_ecs_cluster_entity(mock_ecs_cluster, mock_ecs_cluster_tags, mock_auth)
     assert entity['kind'] == 'Resource'
-    assert entity['metadata']['name'] == '{}-ecs-cluster-{}'.format(account_id, mock_ecs_cluster.get('clusterName', ''))
+    assert entity['metadata']['name'] == 'ecs-cluster-{}'.format(mock_ecs_cluster.get('clusterName', ''))
     assert entity['metadata']['title'] == mock_ecs_cluster.get('clusterName')
     assert entity['metadata']['description'] == 'ECS Cluster {} in account {}'.format(mock_ecs_cluster.get('clusterName', ''), account_id)
     assert entity['metadata']['annotations']['aws.amazon.com/account-id'] == account_id

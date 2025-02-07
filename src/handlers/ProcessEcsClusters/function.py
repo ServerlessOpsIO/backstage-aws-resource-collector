@@ -103,17 +103,18 @@ def _create_ecs_cluster_entity(
     owner = _get_system_owner(system, auth)
 
     region, account_id = cluster.get('clusterArn', '').split(':')[3:5]
+    entity_type = 'ecs-cluster'
 
     entity_spec = EntitySpec({
         'system': system,
         'owner': owner,
-        'type': 'ecs-cluster',
+        'type': entity_type,
         'lifecycle': cluster.get('status', 'UNKNOWN')
     })
 
     entity_meta = EntityMeta({
-        'namespace': 'default',
-        'name': '{}-ecs-cluster-{}'.format(account_id, cluster.get('clusterName', '')),
+        'namespace': account_id,
+        'name': '{}-{}'.format(entity_type, cluster.get('clusterName', '')),
         'title': cluster.get('clusterName', ''),
         'description': 'ECS Cluster {} in account {}'.format(cluster.get('clusterName', ''), account_id),
         'annotations': {
