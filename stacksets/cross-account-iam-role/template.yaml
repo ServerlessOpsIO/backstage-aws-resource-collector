@@ -54,5 +54,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - ecs:Describe*
+                  - ecs:ListClusters
+                  - ecs:DescribeClusters
+                  - ecs:ListTagsForResource
                 Resource: "*"
