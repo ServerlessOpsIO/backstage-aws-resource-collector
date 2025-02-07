@@ -218,7 +218,7 @@ def test__create_vpc_entity(
     account_id = '123456789012'
     region = 'us-east-1'
 
-    entity = mock_fn._create_vpc_entity(mock_vpc, account_id, region, mock_auth)
+    entity = mock_fn._create_vpc_entity(mock_vpc, account_id, region, 'MockSystem', mock_auth)
     assert entity['kind'] == 'Resource'
     assert entity['metadata']['name'] == 'ec2-vpc-{}'.format(vpc_id)
     assert entity['metadata']['title'] == vpc_id

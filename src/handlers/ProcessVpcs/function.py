@@ -94,12 +94,12 @@ def _create_vpc_entity(
     vpc: 'VpcTypeDef',
     account_id: str,
     region: str,
+    system: str,
     auth: JwtAuth
 ) -> Entity:
     '''Create an entity for a VPC'''
     entity_type = 'ec2-vpc'
     tags = { tag.get('key'): tag.get('value', 'NO_VALUE') for tag in vpc.get('Tags', []) }
-    system = tags.get('org:system', 'UNKNOWN')
     owner = _get_system_owner(system, auth)
 
     vpc_id = vpc.get('VpcId', '')
@@ -157,6 +157,9 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
 
 def _main(account_info: AccountTypeWithTags) -> None:
     '''Publish VPC to catalog.'''
+    # NOTE: VPCs arem't tagged so we just use the account's system tag.
+    account_tags = {tag['Key']: tag['Value'] for tag in account_info.get('Tags', [])}
+    system = account_tags.get('org:system', 'UNKNOWN')
     account_id = account_info.get('Id', '')
     ec2_client = _get_cross_account_ec2_client(
         account_id,
@@ -167,7 +170,7 @@ def _main(account_info: AccountTypeWithTags) -> None:
 
     vpcs = ec2_client.describe_vpcs()
     for vpc in vpcs['Vpcs']:
-        entity = _create_vpc_entity(vpc, account_id, region, JWT)
+        entity = _create_vpc_entity(vpc, account_id, region, system, JWT)
         _send_queue_message(entity)
 
 
