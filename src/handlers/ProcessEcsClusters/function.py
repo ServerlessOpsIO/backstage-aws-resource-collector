@@ -112,8 +112,10 @@ def _create_ecs_cluster_entity(
         'lifecycle': cluster.get('status', 'UNKNOWN')
     })
 
+    # FIXME: The odds of a resource collision are low enough at our scale that we'll just use
+    # the default namespace. eventually we should figure out how to handle this.
     entity_meta = EntityMeta({
-        'namespace': account_id,
+        'namespace': 'default',
         'name': '{}-{}'.format(entity_type, cluster.get('clusterName', '')),
         'title': cluster.get('clusterName', ''),
         'description': 'ECS Cluster {} in account {}'.format(cluster.get('clusterName', ''), account_id),
