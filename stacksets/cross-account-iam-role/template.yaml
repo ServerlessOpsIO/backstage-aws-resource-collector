@@ -35,9 +35,9 @@ Resources:
             # WARNING: This is a critical condition that must never be removed!
             Condition:
               StringEquals:
-                "aws:SourceOrgID":
+                "aws:PrincipalOrgID":
                   - !Ref AwsOrganizationId
-                "aws:SourceAccount": !Ref CollectorAccounts
+                "aws:PrincipalAccount": !Ref CollectorAccounts
 
       Policies:
         - PolicyName: DescribeCfnStacks
