@@ -41,7 +41,7 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.13
-    MemorySize: 128
+    MemorySize: 256
     Environment:
       Variables:
         POWERTOOLS_SERVICE_NAME: !Ref AWS::StackName
