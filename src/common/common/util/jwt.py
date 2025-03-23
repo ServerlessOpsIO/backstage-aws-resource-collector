@@ -3,6 +3,8 @@ from requests import post
 from requests.auth import AuthBase
 from time import time
 
+from aws_lambda_powertools.logging import Logger
+LOGGER = Logger(utc=True)
 
 AUTH_ENDPOINT = 'https://auth.serverlessops.io/oauth2/token'
 
@@ -26,6 +28,7 @@ class JwtAuth(AuthBase):
         return r
 
     def _fetch_jwt(self) -> None:
+        LOGGER.info('Fetching JWT token')
         response = post(
             AUTH_ENDPOINT,
             data={
@@ -44,5 +47,7 @@ class JwtAuth(AuthBase):
         self.expiration = int(time()) + response.json().get('expires_in') - 120
 
     def _validate(self) -> None:
-        if (not self.expiration) or int(time()) > self.expiration:
-           self._fetch_jwt() 
+        now = int(time())
+        if (not self.expiration) or (now > self.expiration):
+            LOGGER.info('JWT token expired', extra={'expiration': self.expiration, 'now': now})
+            self._fetch_jwt()
