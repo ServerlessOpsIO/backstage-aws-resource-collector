@@ -44,7 +44,8 @@ class JwtAuth(AuthBase):
         self.token = response.json().get('access_token')
         expires_in = response.json().get('expires_in')
         # Current time + expiration seconds - grace period
-        self.expiration = int(time()) + response.json().get('expires_in') - 120
+        self.expiration = int(time()) + expires_in - 120
+        LOGGER.info('JWT token fetched', extra={'expiration': self.expiration})
 
     def _validate(self) -> None:
         now = int(time())
