@@ -62,7 +62,7 @@ Resources:
         Schedule:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: rate(15 minutes)
+            ScheduleExpression: rate(120 minutes)
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ListAccountsSnsTopic.TopicName
