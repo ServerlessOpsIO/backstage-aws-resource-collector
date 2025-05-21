@@ -295,6 +295,29 @@ Resources:
             Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
             BatchSize: 10
 
+  AwsResourceCollectorDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600 # 14 days
+      VisibilityTimeout: 300 # 5 minutes
+
+  AwsResourceCollectorDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref AwsResourceCollectorDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt AwsResourceCollectorDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt AwsResourceCollectorBus.Arn
+
   AwsResourceCollectorBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -312,3 +335,5 @@ Resources:
             Condition:
               StringEquals:
                 "aws:SourceOrgID": !Ref AwsOrganizationId
+      DeadLetterConfig:
+        Arn: !GetAtt AwsResourceCollectorDlq.Arn
