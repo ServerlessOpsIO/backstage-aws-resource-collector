@@ -330,10 +330,10 @@ Resources:
             Principal:
               Service: events.amazonaws.com
             Action:
-              - events:PutEvents
+              - events:*
             Resource: "*"
-            Condition:
-              StringEquals:
-                "aws:SourceOrgID": !Ref AwsOrganizationId
+            #Condition:
+            #  StringEquals:
+            #    "aws:SourceOrgID": !Ref AwsOrganizationId
       DeadLetterConfig:
         Arn: !GetAtt AwsResourceCollectorDlq.Arn
