@@ -8,6 +8,27 @@ Parameters:
     Description: ARN of eventbus to forward events to.
 
 Resources:
+  ResourceChangeEventsFowardingIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: EventBridgeForwardingRulePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource: !Ref AwsResourceCollectorBusArn
+
   ResourceChangeEventsFowardingRule:
     Type: AWS::Events::Rule
     Properties:
@@ -19,6 +40,7 @@ Resources:
           eventName:
             - prefix: "Create"
             - prefix: "Delete"
+      RoleArn: !GetAtt ResourceChangeEventsFowardingIamRole.Arn
       Targets:
         - Id: AwsResourceCollectorBus
           Arn: !Ref AwsResourceCollectorBusArn
