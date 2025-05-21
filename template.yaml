@@ -38,6 +38,10 @@ Parameters:
     Type: String
     Description: "Cross account role name"
 
+  AwsOrganizationId:
+    Type: String
+    Description: "AWS Organization ID"
+
 Globals:
   Function:
     Runtime: python3.13
@@ -291,3 +295,20 @@ Resources:
             Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
             BatchSize: 10
 
+  AwsResourceCollectorBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${AWS::StackName}-AwsResourceCollectorBus"
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CrossAccountAllowPutEvents
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - events:PutEvents
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "aws:SourceOrgID": !Ref AwsOrganizationId
