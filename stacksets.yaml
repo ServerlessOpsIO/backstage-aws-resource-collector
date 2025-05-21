@@ -1,6 +1,8 @@
 Metadata:
   CrossAccountIamRoleStackSets:
     localTemplateFile: &cross_account_template_body ./stacksets/cross-account-iam-role/template.yaml
+  EventBridgeForwardingRulesStackSets:
+    localTemplateFile: &eventbridge_forwarding_rules_template_body ./stacksets/eventbridge-forwarding-rules/template.yaml
 
 AWSTemplateFormatVersion: '2010-09-09'
 Transform:
@@ -23,6 +25,9 @@ Parameters:
   CrossAccountRoleName:
     Type: String
     Description: Name of the cross-account role
+  AwsResourceCollectorBusArn:
+    Type: String
+    Description: ARN of eventbus to forward events to.
 
 Resources:
   CrossAccountIamRoleStackSets:
@@ -54,3 +59,29 @@ Resources:
         MaxConcurrentCount: 5
       PermissionModel: SERVICE_MANAGED
       TemplateBody: *cross_account_template_body
+
+  EventBridgeForwardingRulesStackSets:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: BackstageEventBridgeForwardingRules
+      Description: EventBridge forwarding rules for AWS Resource Collector
+      Parameters:
+        - ParameterKey: AwsResourceCollectorBusArn
+          ParameterValue: !Ref AwsResourceCollectorBusArn
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      StackInstancesGroup:
+        - DeploymentTargets:
+            OrganizationalUnitIds: !Ref TargetOu
+          Regions: !Ref TargetRegions
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: false
+      ManagedExecution:
+        Active: true
+      OperationPreferences:
+        RegionConcurrencyType: PARALLEL
+        FailureToleranceCount: 1
+        MaxConcurrentCount: 5
+      PermissionModel: SERVICE_MANAGED
+      TemplateBody: *eventbridge_forwarding_rules_template_body

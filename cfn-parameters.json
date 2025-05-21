@@ -11,5 +11,6 @@
     "TargetOu": $secrets.AWS_ORG_ROOT_ID,
     "TargetRegions": "us-east-1",
     "AwsOrganizationId": $secrets.AWS_ORG_ID,
-    "CrossAccountRoleName": "BackstageCrossAccountRole"
+    "CrossAccountRoleName": "BackstageCrossAccountRole",
+    "AwsResourceCollectorBusArn": "arn:aws:events:us-east-1:796973489093:event-bus/backstage-aws-resource-collector-main-AwsResourceCollectorBus"
 }
