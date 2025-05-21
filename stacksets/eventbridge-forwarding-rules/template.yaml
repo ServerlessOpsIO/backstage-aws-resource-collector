@@ -29,18 +29,18 @@ Resources:
                   - events:PutEvents
                 Resource: !Ref AwsResourceCollectorBusArn
 
-  #ResourceChangeEventsFowardingRule:
-  #  Type: AWS::Events::Rule
-  #  Properties:
-  #    Description: Forward AWS resource Creation and Deletion events to central eventbus.
-  #    EventPattern:
-  #      source:
-  #        - prefix: "aws."
-  #      detail:
-  #        eventName:
-  #          - prefix: "Create"
-  #          - prefix: "Delete"
-  #    Targets:
-  #      - Id: AwsResourceCollectorBus
-  #        Arn: !Ref AwsResourceCollectorBusArn
-  #        RoleArn: !GetAtt ResourceChangeEventsFowardingIamRole.Arn
+  ResourceChangeEventsFowardingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Forward AWS resource Creation and Deletion events to central eventbus.
+      EventPattern:
+        source:
+          - prefix: "aws."
+        detail:
+          eventName:
+            - prefix: "Create"
+            - prefix: "Delete"
+      Targets:
+        - Id: AwsResourceCollectorBus
+          Arn: !Ref AwsResourceCollectorBusArn
+          RoleArn: !GetAtt ResourceChangeEventsFowardingIamRole.Arn
