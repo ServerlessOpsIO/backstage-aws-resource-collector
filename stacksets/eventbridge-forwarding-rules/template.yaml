@@ -35,7 +35,9 @@ Resources:
       Description: Forward AWS resource Creation and Deletion events to central eventbus.
       EventPattern:
         source:
-          - prefix: "aws."
+          - "aws.ec2"
+          - "aws.ecs"
+          - "aws.s3"
         detail:
           eventName:
             - prefix: "Create"
