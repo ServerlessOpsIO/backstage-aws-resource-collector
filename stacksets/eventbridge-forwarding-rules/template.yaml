@@ -29,29 +29,6 @@ Resources:
                   - events:PutEvents
                 Resource: !Ref AwsResourceCollectorBusArn
 
-  TargetDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      MessageRetentionPeriod: 1209600 # 14 days
-      VisibilityTimeout: 300 # 5 minutes
-
-  TargetDlqPolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref TargetDlq
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sqs:SendMessage
-            Resource: !GetAtt TargetDlq.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !GetAtt ResourceChangeEventsFowardingRule.Arn
-
   ResourceChangeEventsFowardingRule:
     Type: AWS::Events::Rule
     Properties:
@@ -69,5 +46,3 @@ Resources:
         - Id: AwsResourceCollectorBus
           Arn: !Ref AwsResourceCollectorBusArn
           RoleArn: !GetAtt ResourceChangeEventsFowardingIamRole.Arn
-          DeadLetterConfig:
-            Arn: !GetAtt TargetDlq.Arn
