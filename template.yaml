@@ -333,6 +333,6 @@ Resources:
             Resource: "*"
             Condition:
               StringEquals:
-                "aws:SourceOrgID": !Ref AwsOrganizationId
+                "aws:PrincipalOrgID": !Ref AwsOrganizationId
       DeadLetterConfig:
         Arn: !GetAtt AwsResourceCollectorDlq.Arn
