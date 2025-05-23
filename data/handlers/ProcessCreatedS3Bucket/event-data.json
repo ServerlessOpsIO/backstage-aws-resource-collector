@@ -1,0 +1,54 @@
+{
+    "eventVersion": "1.11",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA3ISBVNODLOLAQGZX4:tom@serverlessops.io",
+        "arn": "arn:aws:sts::123456789012:assumed-role/AWSReservedSSO_AWSAdministratorAccess_481916aafe2d917c/tom@serverlessops.io",
+        "accountId": "774305573766",
+        "accessKeyId": "ASIA3ISBVNODNE4VNMAH",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROA3ISBVNODLOLAQGZX4",
+                "arn": "arn:aws:iam::123456789012:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSAdministratorAccess_481916aafe2d917c",
+                "accountId": "123456789012",
+                "userName": "AWSReservedSSO_AWSAdministratorAccess_481916aafe2d917c"
+            },
+            "attributes": {
+                "creationDate": "2025-05-22T19:14:18Z",
+                "mfaAuthenticated": "false"
+            }
+        }
+    },
+    "eventTime": "2025-05-22T20:45:35Z",
+    "eventSource": "s3.amazonaws.com",
+    "eventName": "CreateBucket",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "75.67.35.21",
+    "userAgent": "[Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36]",
+    "requestParameters": {
+        "bucketName": "test-123456789012",
+        "Host": "test-123456789012.s3.us-east-1.amazonaws.com"
+    },
+    "responseElements": null,
+    "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "addoISsMRvdM7Sg7lFdk73TKbz4goTR8cca6gWPaGaS6hE+HjE4Oi5K10mN2lxn+8CDXMRwz84w=",
+        "bytesTransferredOut": 0
+    },
+    "requestID": "E7SWCTPZ4SSV3WAR",
+    "eventID": "d046834d-2adf-49ab-9f0d-e2ae8ea97926",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "recipientAccountId": "123456789012",
+    "eventCategory": "Management",
+    "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "test-123456789012.s3.us-east-1.amazonaws.com"
+    }
+}

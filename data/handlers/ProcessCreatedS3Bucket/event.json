@@ -1,0 +1,11 @@
+{
+    "version": "0",
+    "id": "872009d8-b7a5-9acb-f805-b05ffed2408b",
+    "detail-type": "AWS API Call via CloudTrail",
+    "source": "aws.s3",
+    "account": "123456789012",
+    "time": "2025-05-22T20:45:35Z",
+    "region": "us-east-1",
+    "resources": [],
+    "detail": {}
+}

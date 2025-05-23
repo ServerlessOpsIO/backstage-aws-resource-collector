@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AWS S3 Bucket Resource",
+    "type": "object",
+    "properties": {
+        "eventSource": {
+            "type": "string",
+            "enum": [
+                "aws:s3"
+            ]
+        },
+        "eventName": {
+            "type": "string",
+            "enum": [
+                "CreateBucket"
+            ]
+        },
+        "awsRegion": {
+            "type": "string"
+        },
+        "recipientAccountId": {
+            "type": "string"
+        },
+        "requestParameters": {
+            "type": "object",
+            "properties": {
+                "bucketName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "bucketName",
+                "Host"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "eventSource",
+        "eventName",
+        "awsRegion",
+        "recipientAccountId",
+        "requestParameters"
+    ],
+    "additionalProperties": true
+}
