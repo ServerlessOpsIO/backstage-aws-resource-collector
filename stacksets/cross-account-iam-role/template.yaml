@@ -66,3 +66,12 @@ Resources:
                 Action:
                   - ec2:DescribeVpcs
                 Resource: "*"
+        - PolicyName: DescribeS3Buckets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:listallmybuckets
+                  - s3:GetBucketTagging
+                Resource: "*"
