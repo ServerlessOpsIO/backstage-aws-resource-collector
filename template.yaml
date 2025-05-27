@@ -66,6 +66,7 @@ Resources:
         Schedule:
           Type: ScheduleV2
           Properties:
+            OmitName: true  # Needed for feature bramnch deployment
             ScheduleExpression: rate(120 minutes)
       Policies:
         - SNSPublishMessagePolicy:
