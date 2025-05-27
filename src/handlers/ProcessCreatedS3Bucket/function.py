@@ -1,7 +1,6 @@
 
 '''Process S3 Bucket Created event'''
 import os
-import json
 from typing import TYPE_CHECKING, List
 
 import requests
@@ -21,14 +20,12 @@ if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
     from mypy_boto3_s3.type_defs import TagTypeDef
     from mypy_boto3_sts.type_defs import CredentialsTypeDef
-    from mypy_boto3_sqs.type_defs import SendMessageResultTypeDef
 
 LOGGER = Logger(utc=True)
 
 # AWS
 STS_CLIENT = boto3.client('sts')
 CROSS_ACCOUNT_IAM_ROLE_NAME = os.environ.get('CROSS_ACCOUNT_IAM_ROLE_NAME', '')
-SQS_QUEUE_URL = os.environ.get('SQS_QUEUE_URL', 'MUST_SET_SQS_QUEUE_URL')
 
 # Catalog
 CATALOG_ENDPOINT = os.environ.get('CATALOG_ENDPOINT', 'MUST_SET_CATALOG_ENDPOINT')
@@ -78,16 +75,6 @@ def _get_cross_account_s3_client(
     )
 
     return client
-
-
-def _send_queue_message(entity: Entity) -> 'SendMessageResultTypeDef':
-    '''Send message to SQS'''
-    sqs = boto3.client('sqs')
-    r = sqs.send_message(
-        QueueUrl=SQS_QUEUE_URL,
-        MessageBody=json.dumps(entity)
-    )
-    return r
 
 
 def _create_s3_bucket_entity(
@@ -158,7 +145,7 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
     return r.json().get('spec', {}).get('owner', 'UNKNOWN')
 
 
-def _main(event_detail: S3CreateBucketEventDetail) -> None:
+def _main(event_detail: S3CreateBucketEventDetail) -> Entity:
     '''Publish account to catalog.'''
 
     account_id = event_detail.recipient_account_id
@@ -175,17 +162,16 @@ def _main(event_detail: S3CreateBucketEventDetail) -> None:
     ).get('TagSet', [])
 
     entity = _create_s3_bucket_entity(account_id, region, bucket_name, bucket_tags, JWT)
-    _send_queue_message(entity)
-
+    return entity
 
 
 @LOGGER.inject_lambda_context
 @event_source(data_class=S3CreateBucketEvent)
-def handler(event: S3CreateBucketEvent, _: LambdaContext) -> None:
+def handler(event: S3CreateBucketEvent, _: LambdaContext) -> Entity:
     '''Event handler'''
     LOGGER.debug('Event', extra={"message_object": event})
-    _main(
+    entity = _main(
         event.detail
     )
 
-    return
+    return entity

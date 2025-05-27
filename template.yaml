@@ -303,6 +303,11 @@ Resources:
                 eventName:
                   - "CreateBucket"
             EventBusName: !Ref AwsResourceCollectorBus
+      EventInvokeConfig:
+        DestinationConfig:
+          OnSuccess:
+            Type: SQS
+            Destination: !GetAtt AddEntityToCatalogSqsQueue.Arn
 
   ###
   # Add to Catalog

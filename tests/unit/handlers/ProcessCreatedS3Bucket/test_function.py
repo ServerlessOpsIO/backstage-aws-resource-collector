@@ -16,7 +16,6 @@ import requests_mock
 import boto3
 from mypy_boto3_s3 import S3Client
 from mypy_boto3_s3.type_defs import BucketTypeDef, TagTypeDef
-from mypy_boto3_sqs import SQSClient
 from moto import mock_aws
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
@@ -108,22 +107,11 @@ def mock_s3_bucket_tags(mock_s3_client, mock_s3_bucket) -> List[TagTypeDef]:
             ]
         }
     )
+
     tags = mock_s3_client.get_bucket_tagging(
         Bucket=mock_s3_bucket['Name']
     )
     return tags.get('TagSet', [])
-
-@pytest.fixture()
-def mock_sqs_client(mocked_aws) -> Generator[SQSClient, None, None]:
-    '''Mock SQS Client'''
-    sqs_client = boto3.client('sqs')
-    yield sqs_client
-
-@pytest.fixture()
-def mock_sqs_queue_url(mock_sqs_client) -> str:
-    '''Mock SQS Queue URL'''
-    queue = mock_sqs_client.create_queue(QueueName='mock-queue')
-    return queue['QueueUrl']
 
 
 # Requests
@@ -167,7 +155,6 @@ def mock_context(function_name=FN_NAME):
 
 @pytest.fixture()
 def mock_fn(
-    mock_sqs_queue_url,
     mock_endpoint,
     mock_auth,
     requests_mocker: requests_mock.Mocker,
@@ -185,11 +172,6 @@ def mock_fn(
     mocker.patch(
         'src.handlers.ProcessCreatedS3Bucket.function.CATALOG_ENDPOINT',
         mock_endpoint
-    )
-
-    mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function.SQS_QUEUE_URL',
-        mock_sqs_queue_url
     )
 
     # We can also use requests_mocker within tests too if necessary
@@ -284,17 +266,10 @@ def test__get_system_owner_fails(
         mock_fn._get_system_owner('mock_system', mock_auth,)
 
 
-def test__send_queue_message(
-    mock_fn: ModuleType,
-):
-    '''Test _send_queue_message function'''
-    response = mock_fn._send_queue_message(json.dumps({}))
-    assert response['ResponseMetadata']['HTTPStatusCode'] == 200
-
-
 def test__main(
     mock_fn: ModuleType,
     mock_event_data: S3CreateBucketEventDetail,
+    mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
     mocker: MockerFixture
@@ -313,7 +288,10 @@ def test__main(
         return_value='owner'
     )
 
-
+    mocker.patch(
+        'src.handlers.ProcessCreatedS3Bucket.function._get_cross_account_s3_client',
+        return_value=mock_s3_client
+    )
 
     mock_fn._main(mock_event_data)
 
@@ -323,6 +301,7 @@ def test_handler(
     mock_context: LambdaContext,
     mock_event_data: S3CreateBucketEventDetail,
     mock_event: S3CreateBucketEvent,
+    mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
     mocker: MockerFixture
@@ -340,6 +319,11 @@ def test_handler(
     mocker.patch(
         'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
         return_value='owner'
+    )
+
+    mocker.patch(
+        'src.handlers.ProcessCreatedS3Bucket.function._get_cross_account_s3_client',
+        return_value=mock_s3_client
     )
 
     mock_event.raw_event['detail'] = mock_event_data
