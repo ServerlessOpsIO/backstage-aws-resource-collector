@@ -3,7 +3,7 @@ from aws_lambda_powertools.utilities.data_classes import (
     EventBridgeEvent
 )
 
-class S3CreateBucketEventDRequestParameters(DictWrapper):
+class S3BucketEventRequestParameters(DictWrapper):
     '''Request Parameters for S3 Create Bucket Event'''
     @property
     def bucket_name(self) -> str:
@@ -11,7 +11,7 @@ class S3CreateBucketEventDRequestParameters(DictWrapper):
         return self['bucketName']
 
 
-class S3CreateBucketEventDetail(DictWrapper):
+class S3BucketEventDetail(DictWrapper):
     '''Event detail for S3 Create Bucket Event'''
     @property
     def aws_region(self) -> str:
@@ -24,14 +24,14 @@ class S3CreateBucketEventDetail(DictWrapper):
         return self['recipientAccountId']
 
     @property
-    def request_parameters(self) -> S3CreateBucketEventDRequestParameters:
+    def request_parameters(self) -> S3BucketEventRequestParameters:
         '''Request parameters'''
-        return S3CreateBucketEventDRequestParameters(self['requestParameters'])
+        return S3BucketEventRequestParameters(self['requestParameters'])
 
 
-class S3CreateBucketEvent(EventBridgeEvent):
+class S3BucketEvent(EventBridgeEvent):
     '''Event for S3 Create Bucket Event'''
     @property
-    def detail(self) -> S3CreateBucketEventDetail:
-        '''Typed event detail for S3 Create Bucket Event'''
-        return S3CreateBucketEventDetail(self['detail'])
+    def detail(self) -> S3BucketEventDetail:
+        '''Typed event detail for S3 Bucket Event'''
+        return S3BucketEventDetail(self['detail'])

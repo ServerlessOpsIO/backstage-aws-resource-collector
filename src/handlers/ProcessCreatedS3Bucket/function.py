@@ -13,7 +13,7 @@ from aws_lambda_powertools.utilities.data_classes import (
 import boto3
 
 from common.model.entity import Entity, EntityMeta, EntitySpec
-from common.model.events.s3 import S3CreateBucketEvent, S3CreateBucketEventDetail
+from common.model.events.s3 import S3BucketEvent, S3BucketEventDetail
 from common.util.jwt import JwtAuth
 
 if TYPE_CHECKING:
@@ -145,8 +145,8 @@ def _get_system_owner(system: str, auth: JwtAuth) -> str:
     return r.json().get('spec', {}).get('owner', 'UNKNOWN')
 
 
-def _main(event_detail: S3CreateBucketEventDetail) -> Entity:
-    '''Publish account to catalog.'''
+def _main(event_detail: S3BucketEventDetail) -> Entity:
+    '''Transform Event to Entity'''
 
     account_id = event_detail.recipient_account_id
     region = event_detail.aws_region
@@ -166,8 +166,8 @@ def _main(event_detail: S3CreateBucketEventDetail) -> Entity:
 
 
 @LOGGER.inject_lambda_context
-@event_source(data_class=S3CreateBucketEvent)
-def handler(event: S3CreateBucketEvent, _: LambdaContext) -> Entity:
+@event_source(data_class=S3BucketEvent)
+def handler(event: S3BucketEvent, _: LambdaContext) -> Entity:
     '''Event handler'''
     LOGGER.debug('Event', extra={"message_object": event})
     entity = _main(
