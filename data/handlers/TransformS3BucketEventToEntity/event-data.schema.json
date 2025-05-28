@@ -12,7 +12,8 @@
         "eventName": {
             "type": "string",
             "enum": [
-                "CreateBucket"
+                "CreateBucket",
+                "DeleteBucket"
             ]
         },
         "awsRegion": {

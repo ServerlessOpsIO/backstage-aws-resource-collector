@@ -23,6 +23,11 @@ if TYPE_CHECKING:
 
 LOGGER = Logger(utc=True)
 
+OPERATIONS_LIFECYCLE_MAP = {
+    'CreateBucket': 'created',
+    'DeleteBucket': 'deleted'
+}
+
 # AWS
 STS_CLIENT = boto3.client('sts')
 CROSS_ACCOUNT_IAM_ROLE_NAME = os.environ.get('CROSS_ACCOUNT_IAM_ROLE_NAME', '')
@@ -77,14 +82,15 @@ def _get_cross_account_s3_client(
     return client
 
 
-def _create_s3_bucket_entity(
+def _get_entity(
     account_id: str,
     region: str,
     bucket_name: str,
     bucket_tags: List['TagTypeDef'],
+    event_name: str,
     auth: JwtAuth
 ) -> Entity:
-    '''Create an entity for an S3 bucket'''
+    ''''''
     # Type says key and value are not required which is interesting. Jumping through hoops to
     # make mypy happy
     tags = {tag.get('Key'): tag.get('Value', 'NO_VALUE') for tag in bucket_tags }
@@ -97,7 +103,7 @@ def _create_s3_bucket_entity(
         'system': system,
         'owner': owner,
         'type': entity_type,
-        'lifecycle': 'created'
+        'lifecycle': OPERATIONS_LIFECYCLE_MAP.get(event_name, 'unknown')
     })
 
     # FIXME: The odds of a resource collision are low enough at our scale that we'll just use
@@ -151,6 +157,8 @@ def _main(event_detail: S3BucketEventDetail) -> Entity:
     account_id = event_detail.recipient_account_id
     region = event_detail.aws_region
     bucket_name = event_detail.request_parameters.bucket_name
+    event_name = event_detail.event_name
+
 
     s3_client = _get_cross_account_s3_client(
         account_id,
@@ -161,7 +169,7 @@ def _main(event_detail: S3BucketEventDetail) -> Entity:
         Bucket=bucket_name
     ).get('TagSet', [])
 
-    entity = _create_s3_bucket_entity(account_id, region, bucket_name, bucket_tags, JWT)
+    entity = _get_entity(account_id, region, bucket_name, bucket_tags, event_name, JWT)
     return entity
 
 

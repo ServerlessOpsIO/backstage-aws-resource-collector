@@ -22,11 +22,11 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.account import AccountTypeWithTags
 from common.model.entity import Entity
-from common.model.events.s3 import S3CreateBucketEvent, S3CreateBucketEventDetail
+from common.model.events.s3 import S3BucketEvent, S3BucketEventDetail
 from common.test.aws import create_lambda_function_context
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
 
-FN_NAME = 'ProcessCreatedS3Bucket'
+FN_NAME = 'TransformS3BucketEventToEntity'
 DATA_DIR = './data'
 FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
 EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
@@ -39,10 +39,10 @@ OUTPUT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'output.schema.json')
 ### Fixtures
 # Mock data
 @pytest.fixture()
-def mock_event_data(e=EVENT_DATA) -> S3CreateBucketEventDetail:
+def mock_event_data(e=EVENT_DATA) -> S3BucketEventDetail:
     '''Return event data object'''
     with open(e) as f:
-        return S3CreateBucketEventDetail(json.load(f))
+        return S3BucketEventDetail(json.load(f))
 
 @pytest.fixture()
 def event_data_schema(schema=EVENT_DATA_SCHEMA):
@@ -51,10 +51,10 @@ def event_data_schema(schema=EVENT_DATA_SCHEMA):
         return json.load(f)
 
 @pytest.fixture()
-def mock_event(e=EVENT) -> S3CreateBucketEvent:
+def mock_event(e=EVENT) -> S3BucketEvent:
     '''Return a function event'''
     with open(e) as f:
-        return S3CreateBucketEvent(json.load(f))
+        return S3BucketEvent(json.load(f))
 
 @pytest.fixture()
 def event_schema(schema=EVENT_SCHEMA):
@@ -175,16 +175,16 @@ def mock_fn(
     mocker: MockerFixture
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
-    import src.handlers.ProcessCreatedS3Bucket.function as fn
+    import src.handlers.TransformS3BucketEventToEntity.function as fn
 
     # NOTE: use mocker to mock any top-level variables outside of the handler function.
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function.JWT',
+        'src.handlers.TransformS3BucketEventToEntity.function.JWT',
         mock_auth
     )
 
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function.CATALOG_ENDPOINT',
+        'src.handlers.TransformS3BucketEventToEntity.function.CATALOG_ENDPOINT',
         mock_endpoint
     )
 
@@ -218,28 +218,30 @@ def test_GetSystemOwnerError(mock_fn: ModuleType):
     e = mock_fn.GetSystemOwnerError('TestSystem')
     assert str(e) == 'Failed to get owner for system: TestSystem'
 
-def test__create_s3_bucket_entity(
+def test__get_entity(
     mock_fn: ModuleType,
-    mock_event_data: S3CreateBucketEventDetail,
-    mock_event: S3CreateBucketEvent,
+    mock_event_data: S3BucketEventDetail,
+    mock_event: S3BucketEvent,
     mock_s3_bucket_tags: List[TagTypeDef],
     mock_auth: JwtAuth,
     mocker: MockerFixture
 ):
-    '''Test test__create_s3_bucket_entity function'''
+    '''Test test__get_entity function'''
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
+        'src.handlers.TransformS3BucketEventToEntity.function._get_system_owner',
         return_value='owner'
     )
 
     account_id = mock_event.account
     region = mock_event_data.aws_region
     bucket_name = mock_event_data.request_parameters.bucket_name
-    entity = mock_fn._create_s3_bucket_entity(
+    event_name = mock_event_data.event_name
+    entity = mock_fn._get_entity(
         account_id,
         region,
         bucket_name,
         mock_s3_bucket_tags,
+        event_name,
         mock_auth
     )
 
@@ -253,6 +255,61 @@ def test__create_s3_bucket_entity(
     assert entity['metadata']['annotations']['aws.amazon.com/region'] == region
     assert entity['spec']['system'] == 'system-1'
 
+def test__get_entity_created(
+    mock_fn: ModuleType,
+    mock_event_data: S3BucketEventDetail,
+    mock_event: S3BucketEvent,
+    mock_s3_bucket_tags: List[TagTypeDef],
+    mock_auth: JwtAuth,
+    mocker: MockerFixture
+):
+    '''Test test__get_entity function'''
+    mocker.patch(
+        'src.handlers.TransformS3BucketEventToEntity.function._get_system_owner',
+        return_value='owner'
+    )
+
+    account_id = mock_event.account
+    region = mock_event_data.aws_region
+    bucket_name = mock_event_data.request_parameters.bucket_name
+    entity = mock_fn._get_entity(
+        account_id,
+        region,
+        bucket_name,
+        mock_s3_bucket_tags,
+        'CreateBucket',
+        mock_auth
+    )
+
+    assert entity['spec']['lifecycle'] == 'created'
+
+def test__get_entity_deleted(
+    mock_fn: ModuleType,
+    mock_event_data: S3BucketEventDetail,
+    mock_event: S3BucketEvent,
+    mock_s3_bucket_tags: List[TagTypeDef],
+    mock_auth: JwtAuth,
+    mocker: MockerFixture
+):
+    '''Test test__get_entity function'''
+    mocker.patch(
+        'src.handlers.TransformS3BucketEventToEntity.function._get_system_owner',
+        return_value='owner'
+    )
+
+    account_id = mock_event.account
+    region = mock_event_data.aws_region
+    bucket_name = mock_event_data.request_parameters.bucket_name
+    entity = mock_fn._get_entity(
+        account_id,
+        region,
+        bucket_name,
+        mock_s3_bucket_tags,
+        'DeleteBucket',
+        mock_auth
+    )
+
+    assert entity['spec']['lifecycle'] == 'deleted'
 
 def test__get_system_owner(
     mock_fn: ModuleType,
@@ -286,7 +343,7 @@ def test__get_system_owner_fails(
 
 def test__main(
     mock_fn: ModuleType,
-    mock_event_data: S3CreateBucketEventDetail,
+    mock_event_data: S3BucketEventDetail,
     mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
@@ -303,12 +360,12 @@ def test__main(
     )
 
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
+        'src.handlers.TransformS3BucketEventToEntity.function._get_system_owner',
         return_value='group:owner'
     )
 
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function._get_cross_account_s3_client',
+        'src.handlers.TransformS3BucketEventToEntity.function._get_cross_account_s3_client',
         return_value=mock_s3_client
     )
 
@@ -330,8 +387,8 @@ def test__main(
 def test_handler(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
-    mock_event_data: S3CreateBucketEventDetail,
-    mock_event: S3CreateBucketEvent,
+    mock_event_data: S3BucketEventDetail,
+    mock_event: S3BucketEvent,
     mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
@@ -349,12 +406,12 @@ def test_handler(
     )
 
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
+        'src.handlers.TransformS3BucketEventToEntity.function._get_system_owner',
         return_value='group:owner'
     )
 
     mocker.patch(
-        'src.handlers.ProcessCreatedS3Bucket.function._get_cross_account_s3_client',
+        'src.handlers.TransformS3BucketEventToEntity.function._get_cross_account_s3_client',
         return_value=mock_s3_client
     )
 

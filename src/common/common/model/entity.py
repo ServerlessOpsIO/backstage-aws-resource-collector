@@ -1,5 +1,5 @@
 '''ServerlessOps / Backstage Catalog entity'''
-from typing import Dict, List, NotRequired, TypedDict
+from typing import Dict, List, Literal, NotRequired, TypedDict
 
 class EntityMetaLink(TypedDict):
     url: str
@@ -21,7 +21,7 @@ class EntitySpec(TypedDict):
     owner: str
     system: str
     type: str
-    lifecycle: str
+    lifecycle: Literal['created', 'deleted', 'unknown']
 
 class Entity(TypedDict):
     apiVersion: str

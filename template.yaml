@@ -269,10 +269,10 @@ Resources:
 
 
   # Process S3 Buckets
-  ProcessCreatedS3BucketFunction:
+  TransformS3BucketEventToEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/handlers/ProcessCreatedS3Bucket
+      CodeUri: ./src/handlers/TransformS3BucketEventToEntity
       Handler: function.handler
       Description: Process S3 buckets
       Timeout: 5
@@ -302,12 +302,13 @@ Resources:
               detail:
                 eventName:
                   - "CreateBucket"
+                  - "DeleteBucket"
             EventBusName: !Ref AwsResourceCollectorBus
       EventInvokeConfig:
         DestinationConfig:
           OnSuccess:
-            Type: SQS
-            Destination: !GetAtt AddEntityToCatalogSqsQueue.Arn
+            Type: EventBridge
+            Destination: !GetAtt AwsResourceCollectorBus.Arn
 
   ###
   # Add to Catalog

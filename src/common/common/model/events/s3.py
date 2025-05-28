@@ -28,6 +28,11 @@ class S3BucketEventDetail(DictWrapper):
         '''Request parameters'''
         return S3BucketEventRequestParameters(self['requestParameters'])
 
+    @property
+    def event_name(self) -> str:
+        '''Name of the event operation'''
+        return self['eventName']
+
 
 class S3BucketEvent(EventBridgeEvent):
     '''Event for S3 Create Bucket Event'''
