@@ -23,9 +23,10 @@ CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'MUST_SET_CLIENT_SECRET')
 JWT = JwtAuth(CLIENT_ID, CLIENT_SECRET)
 
 class AddEntityToCatalogError(Exception):
-    '''Add Account to Catalog Error'''
-    def __init__(self, account_id) -> None:
-        super().__init__('Failed to add account to catalog: {}'.format(account_id))
+    '''Add entity to Catalog Error'''
+    def __init__(self, entity: Entity) -> None:
+        name = entity['metadata']['title']
+        super().__init__('Failed to add entity to catalog: {}'.format(name))
 
 
 def _add_entity_to_catalog(entity: Entity, auth: JwtAuth) -> requests.Response:
@@ -45,8 +46,8 @@ def _add_entity_to_catalog(entity: Entity, auth: JwtAuth) -> requests.Response:
     )
 
     if not r.ok:
-        LOGGER.error('Failed to add entity to catalog', extra={'response': r.text})
-        raise AddEntityToCatalogError(entity['metadata']['title'])
+        LOGGER.error('Failed to add entity to catalog', extra={'response': r.text, 'entity': entity})
+        raise AddEntityToCatalogError(entity)
 
     return r
 

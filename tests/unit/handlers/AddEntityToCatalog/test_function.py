@@ -133,10 +133,13 @@ def test_validate_event(mock_event, event_schema):
 
 
 ### Code Tests
-def test_AddEntityToCatalogError(mock_fn: ModuleType):
+def test_AddEntityToCatalogError(
+    mock_data: Entity,
+    mock_fn: ModuleType
+    ):
     '''Test AddEntityToCatalogError class'''
-    e = mock_fn.AddEntityToCatalogError('account_id')
-    assert str(e) == 'Failed to add account to catalog: account_id'
+    e = mock_fn.AddEntityToCatalogError(mock_data)
+    assert str(e) == 'Failed to add entity to catalog: MockResource'
 
 def test__add_entity_to_catalog(
     mock_fn: ModuleType,
