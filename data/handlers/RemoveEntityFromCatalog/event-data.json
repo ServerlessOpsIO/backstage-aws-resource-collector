@@ -1,0 +1,15 @@
+{
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Resource",
+    "metadata": {
+        "namespace": "default",
+        "name": "mock-resource",
+        "description": "AI Support",
+        "title": "MockResource"
+    },
+    "spec": {
+        "owner": "mock-owner",
+        "system": "mock-system",
+        "type": "cloud-account"
+    }
+}

@@ -337,6 +337,37 @@ Resources:
             Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
             BatchSize: 10
 
+  ###@
+  # Remove from Catalog
+  ###
+  RemoveEntityFromCatalogSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
+
+  RemoveEntityFromCatalogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/RemoveEntityFromCatalog
+      Handler: function.handler
+      Description: Remove entity from catalog
+      Timeout: 5
+      Environment:
+        Variables:
+          CATALOG_ENDPOINT: !Ref CatalogEndpoint
+          CLIENT_ID: !Ref ClientId
+          CLIENT_SECRET: !Ref ClientSecret
+      Events:
+        Sqs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RemoveEntityFromCatalogSqsQueue.Arn
+            BatchSize: 10
+
+  ###
+  # Eventbus
+  ###
   AwsResourceCollectorDlq:
     Type: AWS::SQS::Queue
     Properties:
