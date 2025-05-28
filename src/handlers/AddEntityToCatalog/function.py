@@ -62,7 +62,12 @@ def handler(event: SQSEvent, _: LambdaContext) -> None:
     '''Event handler'''
     LOGGER.debug('Event', extra={"message_object": event._data})
     for record in event.records:
-        entity = Entity(**json.loads(record.body))
+        body = json.loads(record.body)
+        if 'responsePayload' in body:
+            # Handle the case where message was sent to SQS via Lambda Destination
+            entity = Entity(**body['responsePayload'])
+        else:
+            entity = Entity(**body)
         _main(entity)
 
     return
