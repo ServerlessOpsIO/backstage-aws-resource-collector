@@ -1,14 +1,12 @@
 
 '''Remove Entity from catalog'''
 import os
-import json
 import requests
 
 from aws_lambda_powertools.logging import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import (
     event_source,
-    SQSEvent
 )
 
 from common.model.entity import Entity
@@ -57,17 +55,9 @@ def _main(entity: Entity) -> requests.Response:
 
 
 @LOGGER.inject_lambda_context
-@event_source(data_class=SQSEvent)
-def handler(event: SQSEvent, _: LambdaContext) -> None:
+@event_source(data_class=Entity)
+def handler(event: Entity, _: LambdaContext) -> None:
     '''Event handler'''
-    LOGGER.debug('Event', extra={"message_object": event._data})
-    for record in event.records:
-        body = json.loads(record.body)
-        if 'responsePayload' in body:
-            # Handle the case where message was sent to SQS via Lambda Destination
-            entity = Entity(**body['responsePayload'])
-        else:
-            entity = Entity(**body)
-        _main(entity)
+    LOGGER.debug('Event', extra={"message_object": event})
 
     return

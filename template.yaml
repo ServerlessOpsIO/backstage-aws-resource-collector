@@ -49,7 +49,7 @@ Globals:
     Environment:
       Variables:
         POWERTOOLS_SERVICE_NAME: !Ref AWS::StackName
-        POWERTOOLS_LOG_LEVEL: INFO
+        POWERTOOLS_LOG_LEVEL: DEBUG
 
 Resources:
   ###
@@ -332,12 +332,25 @@ Resources:
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
       Events:
-        Sqs:
-          Type: SQS
+        EventBridge:
+          Type: EventBridgeRule
           Properties:
-            Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
-            BatchSize: 10
-
+            InputPath: "$.detail"
+            Pattern:
+              detail:
+                $or:
+                  - responsePayload:
+                      apiVersion:
+                        - "backstage.io/v1alpha1"
+                      spec:
+                        lifecycle:
+                          - "created"
+                  - apiVersion:
+                      - "backstage.io/v1alpha1"
+                    spec:
+                      lifecycle:
+                        - "created"
+            EventBusName: !Ref AwsResourceCollectorBus
   ###@
   # Remove from Catalog
   ###
@@ -360,11 +373,24 @@ Resources:
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
       Events:
-        Sqs:
-          Type: SQS
+        EventBridge:
+          Type: EventBridgeRule
           Properties:
-            Queue: !GetAtt RemoveEntityFromCatalogSqsQueue.Arn
-            BatchSize: 10
+            Pattern:
+              detail:
+                $or:
+                  - responsePayload:
+                      apiVersion:
+                        - "backstage.io/v1alpha1"
+                      spec:
+                        lifecycle:
+                          - "deleted"
+                  - apiVersion:
+                      - "backstage.io/v1alpha1"
+                    spec:
+                      lifecycle:
+                        - "deleted"
+            EventBusName: !Ref AwsResourceCollectorBus
 
   ###
   # Eventbus
