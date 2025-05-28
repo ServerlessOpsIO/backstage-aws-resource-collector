@@ -193,7 +193,7 @@ def test__main(
     mock_fn._main(mock_data)
 
 
-def test_handler(
+def test_handler_with_sqs_event(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
     mock_data: Entity,
@@ -211,4 +211,24 @@ def test_handler(
     )
 
     mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
+    mock_fn.handler(mock_event, mock_context)
+
+def test_handler_with_lambda_destinations_sqs_event(
+    mock_fn: ModuleType,
+    mock_context: LambdaContext,
+    mock_data: Entity,
+    mock_event: SQSEvent,
+    mocker: MockerFixture
+):
+    '''Test calling handler'''
+    # Call the function
+    mocker.patch.object(
+        mock_fn,
+        'JwtAuth',
+        client_id='clientId',
+        client_secret='clientSecret',
+        token='token'
+    )
+
+    mock_event._data['Records'][0]['body'] = json.dumps({ "responsePayload": mock_data })
     mock_fn.handler(mock_event, mock_context)

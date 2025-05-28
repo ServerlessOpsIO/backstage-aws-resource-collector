@@ -21,6 +21,7 @@ from moto import mock_aws
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.account import AccountTypeWithTags
+from common.model.entity import Entity
 from common.model.events.s3 import S3CreateBucketEvent, S3CreateBucketEventDetail
 from common.test.aws import create_lambda_function_context
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
@@ -32,6 +33,8 @@ EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
 EVENT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event.schema.json')
 EVENT_DATA = os.path.join(FUNC_DATA_DIR, 'event-data.json')
 EVENT_DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event-data.schema.json')
+OUTPUT = os.path.join(FUNC_DATA_DIR, 'output.json')
+OUTPUT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'output.schema.json')
 
 ### Fixtures
 # Mock data
@@ -59,6 +62,17 @@ def event_schema(schema=EVENT_SCHEMA):
     with open(schema) as f:
         return json.load(f)
 
+@pytest.fixture()
+def mock_output(e=OUTPUT) -> Entity:
+    '''Return an output entity'''
+    with open(e) as f:
+        return Entity(**json.load(f))
+
+@pytest.fixture()
+def output_schema(schema=OUTPUT_SCHEMA):
+    '''Return an output schema'''
+    with open(schema) as f:
+        return json.load(f)
 
 # AWS
 @pytest.fixture()
@@ -193,6 +207,10 @@ def test_validate_event(mock_event, event_schema):
     '''Test event against schema'''
     jsonschema.Draft7Validator(mock_event._data, event_schema)
 
+def test_validate_output(mock_output, output_schema):
+    '''Test output against schema'''
+    jsonschema.Draft7Validator(mock_output, output_schema)
+
 
 ### Code Tests
 def test_GetSystemOwnerError(mock_fn: ModuleType):
@@ -272,6 +290,7 @@ def test__main(
     mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
+    mock_output: Entity,
     mocker: MockerFixture
 ):
     '''Test _main function'''
@@ -285,7 +304,7 @@ def test__main(
 
     mocker.patch(
         'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
-        return_value='owner'
+        return_value='group:owner'
     )
 
     mocker.patch(
@@ -293,7 +312,19 @@ def test__main(
         return_value=mock_s3_client
     )
 
-    mock_fn._main(mock_event_data)
+    entity = mock_fn._main(mock_event_data)
+
+    assert entity['kind'] == mock_output['kind']
+    assert entity['metadata']['name'] == mock_output['metadata']['name']
+    assert entity['metadata']['title'] == mock_output['metadata']['title']
+    assert entity['metadata']['description'] == mock_output['metadata']['description']
+    assert entity['metadata']['annotations']['aws.amazon.com/arn'] == mock_output['metadata']['annotations']['aws.amazon.com/arn']
+    assert entity['metadata']['annotations']['aws.amazon.com/account-id'] == mock_output['metadata']['annotations']['aws.amazon.com/account-id']
+    assert entity['metadata']['annotations']['aws.amazon.com/region'] == mock_output['metadata']['annotations']['aws.amazon.com/region']
+    assert entity['metadata']['annotations']['aws.amazon.com/bucket-name'] == mock_output['metadata']['annotations']['aws.amazon.com/bucket-name']
+    assert entity['spec']['system'] == mock_output['spec']['system']
+    assert entity['spec']['owner'] == mock_output['spec']['owner']
+    assert entity['spec']['type'] == mock_output['spec']['type']
 
 
 def test_handler(
@@ -304,6 +335,7 @@ def test_handler(
     mock_s3_client: S3Client,
     mock_s3_bucket: BucketTypeDef,
     mock_s3_bucket_tags: List[TagTypeDef],
+    mock_output: Entity,
     mocker: MockerFixture
 ):
     '''Test calling handler'''
@@ -318,7 +350,7 @@ def test_handler(
 
     mocker.patch(
         'src.handlers.ProcessCreatedS3Bucket.function._get_system_owner',
-        return_value='owner'
+        return_value='group:owner'
     )
 
     mocker.patch(
@@ -327,4 +359,6 @@ def test_handler(
     )
 
     mock_event.raw_event['detail'] = mock_event_data
-    mock_fn.handler(mock_event, mock_context)
+    entity = mock_fn.handler(mock_event, mock_context)
+
+    assert entity == mock_output
