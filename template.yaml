@@ -34,6 +34,10 @@ Parameters:
     Description: "Client Secret"
     NoEcho: true
 
+  ClientAuthEndpoint:
+    Type: String
+    Description: "Client Auth Endpoint"
+
   CrossAccountRoleName:
     Type: String
     Description: "Cross account role name"
@@ -403,6 +407,94 @@ Resources:
                     lifecycle:
                       - "deleted"
             EventBusName: !Ref AwsResourceCollectorBus
+
+
+
+  ###
+  # Add/Remove events
+  ###
+
+  AddEntityToCatalogDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 86400 # 1 day
+
+  CatalogApiEventsConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      AuthorizationType: OAUTH_CLIENT_CREDENTIALS
+      Description: ServerlessOps Calalog API connection
+      AuthParameters:
+        OAuthParameters:
+          AuthorizationEndpoint: !Ref ClientAuthEndpoint
+          HttpMethod: POST
+          ClientParameters:
+            ClientID: !Ref ClientId
+            ClientSecret: !Ref ClientSecret
+          OAuthHttpParameters:
+            BodyParameters:
+              - Key: "grant_type"
+                Value: "client_credentials"
+
+  EntityCalaogEventsIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EntityCatalogEventsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:InvokeApiDestination"
+                Resource:
+                  - !GetAtt AddEntityToCatalogEventsApiDestination.Arn
+
+  AddEntityToCatalogEventsApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties:
+      Description: Destination for adding entities to the catalog
+      ConnectionArn: !GetAtt CatalogApiEventsConnection.Arn
+      HttpMethod: POST
+      InvocationEndpoint: !Ref CatalogEndpoint
+
+  AddEntityToCatalogEventsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Rule to add entities to the catalog
+      EventBusName: !Ref AwsResourceCollectorBus
+      EventPattern:
+        detail:
+          $or:
+            - responsePayload:
+                apiVersion:
+                  - "backstage.io/v1alpha1"
+                spec:
+                  lifecycle:
+                    - "created"
+            - apiVersion:
+                - "backstage.io/v1alpha1"
+              spec:
+                lifecycle:
+                  - "created"
+      Targets:
+        - Id: AddEntityToCatalogApiDestination
+          Arn: !GetAtt AddEntityToCatalogEventsApiDestination.Arn
+          InputPath: "$.detail.responsePayload"
+          RoleArn: !GetAtt EntityCalaogEventsIamRole.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAgeInSeconds: 60
+          DeadLetterConfig:
+            Arn: !GetAtt AddEntityToCatalogDlq.Arn
 
   ###
   # Eventbus
