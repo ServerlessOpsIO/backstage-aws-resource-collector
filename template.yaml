@@ -375,6 +375,16 @@ Resources:
                 Resource:
                   - !GetAtt AddEntityToCatalogEventsApiDestination.Arn
                   - !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
+        - PolicyName: DLQ
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  - !GetAtt AddEntityToCatalogDlq.Arn
+                  - !GetAtt RemoveEntityFromCatalogDlq.Arn
 
   AddEntityToCatalogDlq:
     Type: AWS::SQS::Queue
