@@ -375,22 +375,29 @@ Resources:
                 Resource:
                   - !GetAtt AddEntityToCatalogEventsApiDestination.Arn
                   - !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
-        - PolicyName: DLQ
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "sqs:SendMessage"
-                Resource:
-                  - !GetAtt AddEntityToCatalogDlq.Arn
-                  - !GetAtt RemoveEntityFromCatalogDlq.Arn
 
   AddEntityToCatalogDlq:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 30
       MessageRetentionPeriod: 86400 # 1 day
+
+  AddEntityToCatalogDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref AddEntityToCatalogDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt AddEntityToCatalogDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt AddEntityToCatalogEventsApiDestination.Arn
 
   AddEntityToCatalogEventsApiDestination:
     Type: AWS::Events::ApiDestination
@@ -435,6 +442,23 @@ Resources:
     Properties:
       VisibilityTimeout: 30
       MessageRetentionPeriod: 86400 # 1 day
+
+  RemoveEntityFromCatalogDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RemoveEntityFromCatalogDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt RemoveEntityFromCatalogDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
 
   RemoveEntityFromCatalogEventsApiDestination:
     Type: AWS::Events::ApiDestination
