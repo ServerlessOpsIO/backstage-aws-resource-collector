@@ -414,12 +414,6 @@ Resources:
   # Add/Remove events
   ###
 
-  AddEntityToCatalogDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      VisibilityTimeout: 30
-      MessageRetentionPeriod: 86400 # 1 day
-
   CatalogApiEventsConnection:
     Type: AWS::Events::Connection
     Properties:
@@ -457,6 +451,13 @@ Resources:
                   - "events:InvokeApiDestination"
                 Resource:
                   - !GetAtt AddEntityToCatalogEventsApiDestination.Arn
+                  - !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
+
+  AddEntityToCatalogDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 86400 # 1 day
 
   AddEntityToCatalogEventsApiDestination:
     Type: AWS::Events::ApiDestination
@@ -495,6 +496,50 @@ Resources:
             MaximumEventAgeInSeconds: 60
           DeadLetterConfig:
             Arn: !GetAtt AddEntityToCatalogDlq.Arn
+
+  RemoveEntityFromCatalogDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 86400 # 1 day
+
+  RemoveEntityFromCatalogEventsApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties:
+      Description: Destination for adding entities to the catalog
+      ConnectionArn: !GetAtt CatalogApiEventsConnection.Arn
+      HttpMethod: DELETE
+      InvocationEndpoint: !Ref CatalogEndpoint
+
+  RemoveEntityFromCatalogEventsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Rule to remove entities from the catalog
+      EventBusName: !Ref AwsResourceCollectorBus
+      EventPattern:
+        detail:
+          $or:
+            - responsePayload:
+                apiVersion:
+                  - "backstage.io/v1alpha1"
+                spec:
+                  lifecycle:
+                    - "deleted"
+            - apiVersion:
+                - "backstage.io/v1alpha1"
+              spec:
+                lifecycle:
+                  - "deleted"
+      Targets:
+        - Id: RemoveEntityFromCatalogApiDestination
+          Arn: !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
+          InputPath: "$.detail.responsePayload"
+          RoleArn: !GetAtt EntityCalaogEventsIamRole.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAgeInSeconds: 60
+          DeadLetterConfig:
+            Arn: !GetAtt RemoveEntityFromCatalogDlq.Arn
 
   ###
   # Eventbus
