@@ -323,44 +323,6 @@ Resources:
       VisibilityTimeout: 120
       MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
 
-  AddEntityToCatalogFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/handlers/AddEntityToCatalog
-      Handler: function.handler
-      Description: Add entity to catalog
-      Timeout: 5
-      Environment:
-        Variables:
-          CATALOG_ENDPOINT: !Ref CatalogEndpoint
-          CLIENT_ID: !Ref ClientId
-          CLIENT_SECRET: !Ref ClientSecret
-      Events:
-        EventBridge:
-          Type: EventBridgeRule
-          Properties:
-            InputPath: "$.detail"
-            Pattern:
-              detail:
-                apiVersion:
-                  - "backstage.io/v1alpha1"
-                spec:
-                  lifecycle:
-                    - "created"
-            EventBusName: !Ref AwsResourceCollectorBus
-        EventBridgeLambdaDestination:
-          Type: EventBridgeRule
-          Properties:
-            InputPath: "$.detail.responsePayload"
-            Pattern:
-              detail:
-                responsePayload:
-                  apiVersion:
-                    - "backstage.io/v1alpha1"
-                  spec:
-                    lifecycle:
-                      - "created"
-            EventBusName: !Ref AwsResourceCollectorBus
   ###@
   # Remove from Catalog
   ###
@@ -369,45 +331,6 @@ Resources:
     Properties:
       VisibilityTimeout: 120
       MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
-
-  RemoveEntityFromCatalogFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/handlers/RemoveEntityFromCatalog
-      Handler: function.handler
-      Description: Remove entity from catalog
-      Timeout: 5
-      Environment:
-        Variables:
-          CATALOG_ENDPOINT: !Ref CatalogEndpoint
-          CLIENT_ID: !Ref ClientId
-          CLIENT_SECRET: !Ref ClientSecret
-      Events:
-        EventBridge:
-          Type: EventBridgeRule
-          Properties:
-            InputPath: "$.detail"
-            Pattern:
-              apiVersion:
-                - "backstage.io/v1alpha1"
-              spec:
-                lifecycle:
-                  - "deleted"
-            EventBusName: !Ref AwsResourceCollectorBus
-        EventBridgeLambdaDestination:
-          Type: EventBridgeRule
-          Properties:
-            InputPath: "$.detail.responsePayload"
-            Pattern:
-              detail:
-                responsePayload:
-                  apiVersion:
-                    - "backstage.io/v1alpha1"
-                  spec:
-                    lifecycle:
-                      - "deleted"
-            EventBusName: !Ref AwsResourceCollectorBus
-
 
 
   ###
