@@ -490,7 +490,8 @@ Resources:
       Targets:
         - Id: RemoveEntityFromCatalogApiDestination
           Arn: !GetAtt RemoveEntityFromCatalogEventsApiDestination.Arn
-          InputPath: "$.detail.responsePayload"
+          Input: '{"foo": "bar"}'
+          #InputPath: "$.detail.responsePayload"
           RoleArn: !GetAtt EntityCalaogEventsIamRole.Arn
           RetryPolicy:
             MaximumRetryAttempts: 3
