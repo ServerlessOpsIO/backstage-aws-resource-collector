@@ -1,5 +1,6 @@
 
 '''Process S3 Bucket Created event'''
+import json
 import os
 from typing import TYPE_CHECKING, List
 
@@ -181,5 +182,7 @@ def handler(event: S3BucketEvent, _: LambdaContext) -> Entity:
     entity = _main(
         event.detail
     )
+
+    LOGGER.debug('Output', extra={"message_object": json.dumps(entity)})
 
     return entity
