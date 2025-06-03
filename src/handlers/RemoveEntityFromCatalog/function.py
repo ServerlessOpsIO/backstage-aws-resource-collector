@@ -59,5 +59,5 @@ def _main(entity: Entity) -> requests.Response:
 def handler(event: Entity, _: LambdaContext) -> None:
     '''Event handler'''
     LOGGER.debug('Event', extra={"message_object": event})
-
+    _main(event)
     return
