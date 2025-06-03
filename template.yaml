@@ -342,24 +342,18 @@ Resources:
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
       Events:
-        EventBridge:
+        EventBridgeLambdaDestination:
           Type: EventBridgeRule
           Properties:
-            InputPath: "$.detail"
+            InputPath: "$.detail.responsePayload"
             Pattern:
               detail:
-                $or:
-                  - responsePayload:
-                      apiVersion:
-                        - "backstage.io/v1alpha1"
-                      spec:
-                        lifecycle:
-                          - "created"
-                  - apiVersion:
-                      - "backstage.io/v1alpha1"
-                    spec:
-                      lifecycle:
-                        - "created"
+                responsePayload:
+                  apiVersion:
+                    - "backstage.io/v1alpha1"
+                  spec:
+                    lifecycle:
+                      - "created"
             EventBusName: !Ref AwsResourceCollectorBus
   ###@
   # Remove from Catalog
@@ -383,23 +377,18 @@ Resources:
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
       Events:
-        EventBridge:
+        EventBridgeLambdaDestination:
           Type: EventBridgeRule
           Properties:
+            InputPath: "$.detail.responsePayload"
             Pattern:
               detail:
-                $or:
-                  - responsePayload:
-                      apiVersion:
-                        - "backstage.io/v1alpha1"
-                      spec:
-                        lifecycle:
-                          - "deleted"
-                  - apiVersion:
-                      - "backstage.io/v1alpha1"
-                    spec:
-                      lifecycle:
-                        - "deleted"
+                responsePayload:
+                  apiVersion:
+                    - "backstage.io/v1alpha1"
+                  spec:
+                    lifecycle:
+                      - "deleted"
             EventBusName: !Ref AwsResourceCollectorBus
 
   ###
