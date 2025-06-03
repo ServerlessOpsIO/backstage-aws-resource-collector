@@ -10,7 +10,6 @@ import pytest
 from pytest_mock import MockerFixture
 import requests_mock
 
-from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.entity import Entity
@@ -22,34 +21,22 @@ DATA_DIR = './data'
 FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
 EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
 EVENT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event.schema.json')
-DATA = os.path.join(FUNC_DATA_DIR, 'data.json')
-DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'data.schema.json')
+EVENT_DATA = os.path.join(FUNC_DATA_DIR, 'event-data.json')
+EVENT_DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event-data.schema.json')
 
 ### Fixtures
 
 # FIXME: Need to handle differences between powertools event classes and the Event class
 # Event
 @pytest.fixture()
-def mock_data(e=DATA) -> Entity:
+def mock_event_data(e=EVENT_DATA) -> Entity:
     '''Return event data object'''
     with open(e) as f:
         return Entity(**json.load(f))
 
 @pytest.fixture()
-def data_schema(schema=DATA_SCHEMA):
+def event_data_schema(schema=EVENT_DATA_SCHEMA):
     '''Return an data schema'''
-    with open(schema) as f:
-        return json.load(f)
-
-@pytest.fixture()
-def mock_event(e=EVENT) -> SQSEvent:
-    '''Return a function event'''
-    with open(e) as f:
-        return SQSEvent(json.load(f))
-
-@pytest.fixture()
-def event_schema(schema=EVENT_SCHEMA):
-    '''Return an event schema'''
     with open(schema) as f:
         return json.load(f)
 
@@ -123,32 +110,28 @@ def mock_fn(
 
 
 ### Data validation tests
-def test_validate_data(mock_data, data_schema):
+def test_validate_data(mock_event_data, event_data_schema):
     '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_data, data_schema)
-
-def test_validate_event(mock_event, event_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event._data, event_schema)
+    jsonschema.Draft7Validator(mock_event_data, event_data_schema)
 
 
 ### Code Tests
 def test_AddEntityToCatalogError(
-    mock_data: Entity,
+    mock_event_data: Entity,
     mock_fn: ModuleType
     ):
     '''Test AddEntityToCatalogError class'''
-    e = mock_fn.AddEntityToCatalogError(mock_data)
+    e = mock_fn.AddEntityToCatalogError(mock_event_data)
     assert str(e) == 'Failed to add entity to catalog: MockResource'
 
 def test__add_entity_to_catalog(
     mock_fn: ModuleType,
-    mock_data: Entity,
+    mock_event_data: Entity,
     mock_endpoint: str,
     mock_auth: JwtAuth,
     requests_mocker: requests_mock.Mocker,
 ):
-    r = mock_fn._add_entity_to_catalog(mock_data, mock_auth)
+    r = mock_fn._add_entity_to_catalog(mock_event_data, mock_auth)
 
     assert requests_mocker.called == True
     assert requests_mocker.call_count == 1
@@ -156,15 +139,15 @@ def test__add_entity_to_catalog(
     assert r.request.method == 'PUT'
     assert r.request.url == '{}/{}/{}/{}'.format(
         mock_endpoint,
-        mock_data['metadata']['namespace'],
-        mock_data['kind'].lower(),
-        mock_data['metadata']['name']
+        mock_event_data['metadata']['namespace'],
+        mock_event_data['kind'].lower(),
+        mock_event_data['metadata']['name']
     )
 
 
 def test__add_entity_to_catalog_fails(
     mock_fn: ModuleType,
-    mock_data: Entity,
+    mock_event_data: Entity,
     mock_auth: JwtAuth,
     requests_mocker: requests_mock.Mocker,
 ):
@@ -176,12 +159,12 @@ def test__add_entity_to_catalog_fails(
     )
 
     with pytest.raises(mock_fn.AddEntityToCatalogError):
-        mock_fn._add_entity_to_catalog(mock_data, mock_auth)
+        mock_fn._add_entity_to_catalog(mock_event_data, mock_auth)
 
 
 def test__main(
     mock_fn: ModuleType,
-    mock_data: Entity,
+    mock_event_data: Entity,
     mocker: MockerFixture
 ):
     '''Test _main function'''
@@ -193,14 +176,13 @@ def test__main(
         token='token'
     )
 
-    mock_fn._main(mock_data)
+    mock_fn._main(mock_event_data)
 
 
-def test_handler_with_sqs_event(
+def test_handler(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
-    mock_data: Entity,
-    mock_event: SQSEvent,
+    mock_event_data: Entity,
     mocker: MockerFixture
 ):
     '''Test calling handler'''
@@ -213,25 +195,4 @@ def test_handler_with_sqs_event(
         token='token'
     )
 
-    mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
-    mock_fn.handler(mock_event, mock_context)
-
-def test_handler_with_lambda_destinations_sqs_event(
-    mock_fn: ModuleType,
-    mock_context: LambdaContext,
-    mock_data: Entity,
-    mock_event: SQSEvent,
-    mocker: MockerFixture
-):
-    '''Test calling handler'''
-    # Call the function
-    mocker.patch.object(
-        mock_fn,
-        'JwtAuth',
-        client_id='clientId',
-        client_secret='clientSecret',
-        token='token'
-    )
-
-    mock_event._data['Records'][0]['body'] = json.dumps({ "responsePayload": mock_data })
-    mock_fn.handler(mock_event, mock_context)
+    mock_fn.handler(mock_event_data, mock_context)

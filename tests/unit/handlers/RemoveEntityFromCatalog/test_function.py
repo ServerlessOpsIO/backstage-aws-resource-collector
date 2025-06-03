@@ -14,7 +14,6 @@ import pytest
 from pytest_mock import MockerFixture
 import requests_mock
 
-from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.entity import Entity
@@ -42,18 +41,6 @@ def mock_event_data(e=EVENT_DATA) -> Entity:
 @pytest.fixture()
 def event_data_schema(schema=EVENT_DATA_SCHEMA):
     '''Return an data schema'''
-    with open(schema) as f:
-        return json.load(f)
-
-@pytest.fixture()
-def mock_event(e=EVENT) -> SQSEvent:
-    '''Return a function event'''
-    with open(e) as f:
-        return SQSEvent(json.load(f))
-
-@pytest.fixture()
-def event_schema(schema=EVENT_SCHEMA):
-    '''Return an event schema'''
     with open(schema) as f:
         return json.load(f)
 
@@ -127,13 +114,9 @@ def mock_fn(
 
 
 ### Data validation tests
-def test_validate_data(mock_event_data, event_data_schema):
+def test_validate_event_data(mock_event_data, event_data_schema):
     '''Test event against schema'''
     jsonschema.Draft7Validator(mock_event_data, event_data_schema)
-
-def test_validate_event(mock_event, event_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event._data, event_schema)
 
 
 ### Code Tests
@@ -204,7 +187,6 @@ def test_handler_with_sqs_event(
     mock_fn: ModuleType,
     mock_context: LambdaContext,
     mock_event_data: Entity,
-    mock_event: SQSEvent,
     mocker: MockerFixture
 ):
     '''Test calling handler'''
@@ -217,25 +199,4 @@ def test_handler_with_sqs_event(
         token='token'
     )
 
-    mock_event._data['Records'][0]['body'] = json.dumps(mock_event_data)
-    mock_fn.handler(mock_event, mock_context)
-
-def test_handler_with_lambda_destinations_sqs_event(
-    mock_fn: ModuleType,
-    mock_context: LambdaContext,
-    mock_event_data: Entity,
-    mock_event: SQSEvent,
-    mocker: MockerFixture
-):
-    '''Test calling handler'''
-    # Call the function
-    mocker.patch.object(
-        mock_fn,
-        'JwtAuth',
-        client_id='clientId',
-        client_secret='clientSecret',
-        token='token'
-    )
-
-    mock_event._data['Records'][0]['body'] = json.dumps({ "responsePayload": mock_event_data })
-    mock_fn.handler(mock_event, mock_context)
+    mock_fn.handler(mock_event_data, mock_context)
