@@ -42,6 +42,16 @@ Parameters:
     Type: String
     Description: "AWS Organization ID"
 
+  AllEventsLog:
+    Type: String
+    Description: "Whether to log all events to CloudWatch"
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+      - ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS
+    ConstraintDescription: "Must be either ENABLED, DISABLED, or ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS"
+
 Globals:
   Function:
     Runtime: python3.13
@@ -436,3 +446,22 @@ Resources:
                 "aws:PrincipalOrgID": !Ref AwsOrganizationId
       DeadLetterConfig:
         Arn: !GetAtt AwsResourceCollectorDlq.Arn
+
+  AllEventsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/events/${AWS::StackName}/AwsResourceCollectorBus/all"
+      RetentionInDays: 5
+
+  AwsResourceCollectorBusRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Rule to log all events to CloudWatch"
+      EventBusName: !Ref AwsResourceCollectorBus
+      State: !Ref AllEventsLog
+      EventPattern:
+        account:
+          - wildcard: '*'
+      Targets:
+        - Arn: !GetAtt AllEventsLogGroup.Arn
+          Id: "AllEventsLogGroup"
