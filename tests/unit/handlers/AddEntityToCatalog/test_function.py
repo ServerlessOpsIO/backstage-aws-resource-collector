@@ -1,10 +1,13 @@
 '''Test AddEntityToCatalog'''
+# pylint: disable=missing-function-docstring,missing-module-docstring,unused-argument,redefined-outer-name,protected-access
+
 import json
-import jsonschema
 import os
 from time import time
 from types import ModuleType
 from typing import Generator
+
+import jsonschema
 
 import pytest
 from pytest_mock import MockerFixture
