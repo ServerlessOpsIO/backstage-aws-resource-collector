@@ -279,6 +279,59 @@ Resources:
 
 
   # Process S3 Buckets
+  ListAccountS3BucketsSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 300   # Go away before next invocation of ListAccountsFunction
+
+  ListAccountS3BucketsSqsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ProcessEcsClustersSqsQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt ListAccountS3BucketsSqsQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt ListAccountsSnsTopic.TopicArn
+
+  ListAccountS3BucketsQueueToTopic:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Ref ListAccountsSnsTopic
+      Endpoint: !GetAtt ListAccountS3BucketsSqsQueue.Arn
+      RawMessageDelivery: true
+
+  ListAccountS3BucketsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/handlers/ListAccountS3Buckets
+      Handler: function.handler
+      Description: List S3 Buckets in account
+      Timeout: 15
+      Events:
+        Sqs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ListAccountS3BucketsSqsQueue.Arn
+            BatchSize: 1
+      Policies:
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref AwsResourceCollectorBus
+      Environment:
+        Variables:
+          CROSS_ACCOUNT_IAM_ROLE_NAME: !Ref CrossAccountRoleName
+          EVENT_BUS_NAME: !Ref AwsResourceCollectorBus
+
+
   TransformS3BucketEventToEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
