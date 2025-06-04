@@ -292,16 +292,6 @@ Resources:
           CATALOG_ENDPOINT: !Ref CatalogEndpoint
           CLIENT_ID: !Ref ClientId
           CLIENT_SECRET: !Ref ClientSecret
-          SQS_QUEUE_URL: !GetAtt AddEntityToCatalogSqsQueue.QueueUrl
-      Policies:
-        - SQSSendMessagePolicy:
-            QueueName: !GetAtt AddEntityToCatalogSqsQueue.QueueName
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - sts:AssumeRole
-              Resource: !Sub arn:aws:iam::*:role/${CrossAccountRoleName}
       Events:
         EventBridgeRule:
           Type: EventBridgeRule
