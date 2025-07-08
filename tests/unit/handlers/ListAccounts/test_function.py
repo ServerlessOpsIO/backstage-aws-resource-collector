@@ -109,19 +109,6 @@ class TestData:
 
 class TestCode:
     '''Code tests'''
-    def test__get_account_tags(
-        self,
-        mock_fn: ModuleType,
-        mock_account: AccountTypeDef,
-        mock_account_tags: List[TagTypeDef],
-    ):
-        '''Test _get_account_tags function'''
-        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-        assert 'Tags' in account_with_tags
-        assert len(account_with_tags['Tags']) > 0
-        assert account_with_tags['Tags'] == mock_account_tags
-
-
     @pytest.mark.usefixtures("mock_organization")
     def test__list_all_accounts(
         self,
@@ -144,8 +131,7 @@ class TestCode:
         mock_account: AccountTypeDef,
     ):
         '''Test _publish_accounts function'''
-        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-        response = mock_fn._publish_accounts([account_with_tags])
+        response = mock_fn._publish_accounts([mock_account])
         assert len(response) > 0
 
 

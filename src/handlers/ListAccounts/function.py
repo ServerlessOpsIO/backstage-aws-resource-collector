@@ -14,9 +14,9 @@ from aws_lambda_powertools.utilities.data_classes import (
 
 if TYPE_CHECKING:
     from mypy_boto3_events.type_defs import PutEventsRequestEntryTypeDef, PutEventsResponseTypeDef
+    from mypy_boto3_organizations.type_defs import AccountTypeDef
 
 
-from common.model.account import AccountType, AccountTypeWithTags
 from common.util import JSONDateTimeEncoder
 
 LOGGER = Logger(utc=True)
@@ -26,20 +26,7 @@ EVENTS_CLIENT = boto3.client('events')
 EVENT_BUS_NAME = os.environ.get('EVENT_BUS_NAME', 'UNSET')
 
 
-def _get_account_tags(accounts: List[AccountType]) -> List[AccountTypeWithTags]:
-    '''Get tags for accounts'''
-    accounts_with_tags = []
-    for account in accounts:
-        tags = ORG_CLIENT.list_tags_for_resource(
-            # Haven't seen a situation where Id is not present
-            ResourceId=account.get('Id', '')
-        ).get('Tags')
-        account_with_tags = {**account, 'Tags': tags}
-        accounts_with_tags.append(account_with_tags)
-    return accounts_with_tags
-
-
-def _list_all_accounts(NextToken: Optional[str] = None) -> List[AccountType]:
+def _list_all_accounts(NextToken: Optional[str] = None) -> List['AccountTypeDef']:
     '''List AWS accounts'''
     accounts = []
     while True:
@@ -58,7 +45,7 @@ def _list_all_accounts(NextToken: Optional[str] = None) -> List[AccountType]:
     return accounts
 
 
-def _publish_accounts(accounts: List[AccountTypeWithTags]) -> 'PutEventsResponseTypeDef':
+def _publish_accounts(accounts: List['AccountTypeDef']) -> 'PutEventsResponseTypeDef':
     '''Publish account to EventBridge'''
     account_entries: Sequence[PutEventsRequestEntryTypeDef] = [
         {
@@ -83,8 +70,7 @@ def _publish_accounts(accounts: List[AccountTypeWithTags]) -> 'PutEventsResponse
 def _main() -> None:
     '''List AWS accounts and publish to SNS'''
     accounts = _list_all_accounts()
-    accounts_with_tags = _get_account_tags(accounts)
-    _publish_accounts(accounts_with_tags)
+    _publish_accounts(accounts)
 
 
 @LOGGER.inject_lambda_context
