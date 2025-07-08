@@ -53,6 +53,52 @@ Globals:
 
 Resources:
   ###
+  # Service eventbus
+  ###
+  AwsResourceCollectorDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600 # 14 days
+      VisibilityTimeout: 300 # 5 minutes
+
+  AwsResourceCollectorDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref AwsResourceCollectorDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt AwsResourceCollectorDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt AwsResourceCollectorBus.Arn
+
+  AwsResourceCollectorBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${AWS::StackName}-AwsResourceCollectorBus"
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CrossAccountAllowPutEvents
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - events:PutEvents
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "aws:PrincipalOrgID": !Ref AwsOrganizationId
+      DeadLetterConfig:
+        Arn: !GetAtt AwsResourceCollectorDlq.Arn
+
+
+  ###
   # List AWS accounts
   ###
   ListAccountsFunction:
@@ -169,45 +215,3 @@ Resources:
           Properties:
             Queue: !GetAtt AddEntityToCatalogSqsQueue.Arn
             BatchSize: 10
-
-  AwsResourceCollectorDlq:
-    Type: AWS::SQS::Queue
-    Properties:
-      MessageRetentionPeriod: 1209600 # 14 days
-      VisibilityTimeout: 300 # 5 minutes
-
-  AwsResourceCollectorDlqPolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref AwsResourceCollectorDlq
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sqs:SendMessage
-            Resource: !GetAtt AwsResourceCollectorDlq.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !GetAtt AwsResourceCollectorBus.Arn
-
-  AwsResourceCollectorBus:
-    Type: AWS::Events::EventBus
-    Properties:
-      Name: !Sub "${AWS::StackName}-AwsResourceCollectorBus"
-      Policy:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: CrossAccountAllowPutEvents
-            Effect: Allow
-            Principal: '*'
-            Action:
-              - events:PutEvents
-            Resource: "*"
-            Condition:
-              StringEquals:
-                "aws:PrincipalOrgID": !Ref AwsOrganizationId
-      DeadLetterConfig:
-        Arn: !GetAtt AwsResourceCollectorDlq.Arn
