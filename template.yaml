@@ -144,11 +144,13 @@ Resources:
             OmitName: true  # Needed for feature bramnch deployment
             ScheduleExpression: rate(120 minutes)
       Policies:
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt ListAccountsSnsTopic.TopicName
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref AwsResourceCollectorBus
         - AWSOrganizationsReadOnlyAccess
       Environment:
         Variables:
+          EVENT_BUS_NAME: !Ref AwsResourceCollectorBus
+
           SNS_TOPIC_ARN: !Ref ListAccountsSnsTopic
 
   ListAccountsSnsTopic:

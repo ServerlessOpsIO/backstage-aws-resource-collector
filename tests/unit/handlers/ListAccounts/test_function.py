@@ -10,30 +10,31 @@ from pytest_mock import MockerFixture
 
 from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import AccountTypeDef, TagTypeDef
-from mypy_boto3_sns import SNSClient
+from mypy_boto3_events import EventBridgeClient
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 ### Fixtures
 # AWS Clients
 #
-# NOTE: Mocking AWS services must also be done before importing the function.
+@pytest.fixture()
+
+def mock_events_client(make_mocked_client: Callable) -> Generator[EventBridgeClient, None, None]:
+    '''Mock EventBridge Client'''
+    yield make_mocked_client('events')
+
+@pytest.fixture()
+def mock_event_bus_name(mock_events_client) -> str:
+    '''Return the event bus name'''
+    mock_event_bus_name = 'MockEventBus'
+    r = mock_events_client.create_event_bus(Name=mock_event_bus_name)
+    return mock_event_bus_name
+
 @pytest.fixture()
 def mock_orgs_client(make_mocked_client: Callable) -> Generator[OrganizationsClient, None, None]:
     '''Mock Organizations Client'''
     yield make_mocked_client('organizations')
 
-@pytest.fixture()
-def mock_sns_client(make_mocked_client: Callable) -> Generator[SNSClient, None, None]:
-    '''Mock SNS Client'''
-    yield make_mocked_client('sns')
-
-@pytest.fixture()
-def mock_sns_topic_arn(mock_sns_client) -> str:
-    '''Create a mock resource'''
-    mock_topic_name = 'MockTopic'
-    r = mock_sns_client.create_topic(Name=mock_topic_name)
-    return r.get('TopicArn')
 
 @pytest.fixture()
 def mock_organization(mock_orgs_client) -> None:
@@ -41,7 +42,6 @@ def mock_organization(mock_orgs_client) -> None:
     mock_orgs_client.create_organization()
 
 
-#pytest.mark.usefixtures("mock_organization")
 @pytest.fixture()
 def mock_account(
     mock_orgs_client: OrganizationsClient,
@@ -85,7 +85,7 @@ def mock_account_tags(
 
 @pytest.fixture()
 def mock_fn(
-    mock_sns_topic_arn: str,
+    mock_event_bus_name: str,
     mocker: MockerFixture
 ) -> Generator[ModuleType, None, None]:
     '''Return mocked function'''
@@ -93,8 +93,8 @@ def mock_fn(
 
     # NOTE: use mocker to mock any top-level variables outside of the handler function.
     mocker.patch(
-        'src.handlers.ListAccounts.function.SNS_TOPIC_ARN',
-        mock_sns_topic_arn
+        'src.handlers.ListAccounts.function.EVENT_BUS_NAME',
+        mock_event_bus_name
     )
 
     yield fn
@@ -149,6 +149,7 @@ class TestCode:
         assert len(response) > 0
 
 
+    @pytest.mark.usefixtures("mock_account")
     def test__main(
         self,
         mock_fn: ModuleType,
@@ -157,6 +158,7 @@ class TestCode:
         mock_fn._main()
 
 
+    @pytest.mark.usefixtures("mock_account")
     def test_handler(
         self,
         lambda_function_name: str,
