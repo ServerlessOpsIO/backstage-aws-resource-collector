@@ -50,7 +50,7 @@ def _publish_accounts(accounts: List['AccountTypeDef']) -> 'PutEventsResponseTyp
     account_entries: Sequence[PutEventsRequestEntryTypeDef] = [
         {
             'Source': 'self.ListAccounts',
-            'DetailType': '',
+            'DetailType': 'Accounts',
             'Detail': json.dumps(account, cls=JSONDateTimeEncoder),
             'EventBusName': EVENT_BUS_NAME,
             'Resources': [
