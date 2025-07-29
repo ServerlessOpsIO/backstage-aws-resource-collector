@@ -6,7 +6,7 @@ setup(
     name='common',
     version='0.0.1',
     description='backstage-aws-resource-collector common code',
-    author='NBCUniversal',
+    author='ServerlessOps',
     license='Apache License 2.0',
     packages=find_packages(exclude=['tests.*', 'tests']),
     keywords="backstage-aws-resource-collector service",
@@ -18,6 +18,15 @@ setup(
         'boto3-stubs[organizations]',
         'dataclasses-json',
     ],
+    extras_require={
+        'dev': [
+            'pytest',
+            'pytest-mock',
+            'moto',
+            'boto3-stubs[ec2]',
+            'boto3-stubs[sts]',
+        ]
+    },
     classifiers=[
         'Environment :: Console',
         'Environment :: Other Environment',
