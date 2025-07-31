@@ -9,12 +9,9 @@ from typing import Callable, Generator, List
 import pytest
 from pytest_mock import MockerFixture
 
-
-import boto3
 from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import AccountTypeDef, TagTypeDef
 from mypy_boto3_sns import SNSClient
-from moto import mock_aws
 
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
@@ -46,29 +43,12 @@ def event_schema(schema=EVENT_SCHEMA):
 #
 # NOTE: Mocking AWS services must also be done before importing the function.
 @pytest.fixture()
-def aws_credentials() -> None:
-    '''Mocked AWS Credentials for moto.'''
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+def mock_orgs_client(make_mocked_client: Callable) -> Generator[OrganizationsClient, None, None]:
+    yield make_mocked_client('organizations')
 
 @pytest.fixture()
-def mocked_aws(aws_credentials):
-    '''Mock all AWS interactions'''
-    with mock_aws():
-        yield
-
-@pytest.fixture()
-def mock_orgs_client(mocked_aws) -> Generator[OrganizationsClient, None, None]:
-    orgs_client = boto3.client('organizations')
-    yield orgs_client
-
-@pytest.fixture()
-def mock_sns_client(mocked_aws) -> Generator[SNSClient, None, None]:
-    sns_client = boto3.client('sns')
-    yield sns_client
+def mock_sns_client(make_mocked_client: Callable) -> Generator[SNSClient, None, None]:
+    yield make_mocked_client('sns')
 
 @pytest.fixture()
 def mock_sns_topic_arn(mock_sns_client) -> str:

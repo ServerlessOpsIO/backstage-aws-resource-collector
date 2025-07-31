@@ -10,11 +10,9 @@ import pytest
 from pytest_mock import MockerFixture
 import requests_mock
 
-import boto3
 from mypy_boto3_ec2 import EC2Client
 from mypy_boto3_ec2.type_defs import VpcTypeDef
 from mypy_boto3_sqs import SQSClient
-from moto import mock_aws
 
 from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
@@ -59,25 +57,9 @@ def event_schema(schema=EVENT_SCHEMA):
 
 # AWS
 @pytest.fixture()
-def aws_credentials() -> None:
-    '''Mocked AWS Credentials for moto.'''
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
-
-@pytest.fixture()
-def mocked_aws(aws_credentials):
-    '''Mock all AWS interactions'''
-    with mock_aws():
-        yield
-
-@pytest.fixture()
-def mock_ec2_client(mocked_aws) -> Generator[EC2Client, None, None]:
+def mock_ec2_client(make_mocked_client: Callable) -> Generator[EC2Client, None, None]:
     '''Mock ECS Client'''
-    ec2_client = boto3.client('ec2')
-    yield ec2_client
+    yield make_mocked_client('ec2')
 
 @pytest.fixture()
 def mock_vpc(mock_ec2_client) -> VpcTypeDef:
@@ -97,10 +79,9 @@ def mock_vpc(mock_ec2_client) -> VpcTypeDef:
 
 
 @pytest.fixture()
-def mock_sqs_client(mocked_aws) -> Generator[SQSClient, None, None]:
+def mock_sqs_client(make_mocked_client: Callable) -> Generator[SQSClient, None, None]:
     '''Mock SQS Client'''
-    sqs_client = boto3.client('sqs')
-    yield sqs_client
+    yield make_mocked_client('sqs')
 
 @pytest.fixture()
 def mock_sqs_queue_url(mock_sqs_client) -> str:
