@@ -266,6 +266,7 @@ def test__main(
 
 
 def test_handler(
+    lambda_function_name: str,
     mock_fn: ModuleType,
     mock_context: Callable[[str], LambdaContext],
     mock_data: AccountTypeWithTags,
@@ -288,4 +289,4 @@ def test_handler(
     )
 
     mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
-    mock_fn.handler(mock_event, mock_context(FN_NAME))
+    mock_fn.handler(mock_event, mock_context(lambda_function_name))

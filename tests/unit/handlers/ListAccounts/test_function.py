@@ -174,10 +174,11 @@ def test__main(
 
 
 def test_handler(
+    lambda_function_name: str,
     mock_fn: ModuleType,
     mock_context: Callable[[str], LambdaContext],
     mock_event: EventBridgeEvent,
 ):
     '''Test calling handler'''
     # Call the function
-    mock_fn.handler(mock_event, mock_context(FN_NAME))
+    mock_fn.handler(mock_event, mock_context(lambda_function_name))

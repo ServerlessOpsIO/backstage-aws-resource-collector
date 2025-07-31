@@ -15,9 +15,14 @@ if TYPE_CHECKING:
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 @pytest.fixture()
+def lambda_function_name(request: pytest.FixtureRequest) -> str:
+    '''Return the name of the Lambda function being tested'''
+    return request.path.parent.name
+
+@pytest.fixture()
 def mock_context() -> Callable[[str], 'LambdaContext']:
     '''context object'''
-    def _make_context(function_name: str = 'MockFunction') -> 'LambdaContext':
+    def _make_context(function_name: str) -> 'LambdaContext':
         context_info = {
             'aws_request_id': '00000000-0000-0000-0000-000000000000',
             'function_name': function_name,
