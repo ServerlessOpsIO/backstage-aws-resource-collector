@@ -4,7 +4,7 @@ import jsonschema
 import os
 from time import time
 from types import ModuleType
-from typing import Generator
+from typing import Callable, Generator
 
 import pytest
 from pytest_mock import MockerFixture
@@ -14,7 +14,6 @@ from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.entity import Entity
-from common.test.aws import create_lambda_function_context
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
 
 FN_NAME = 'AddEntityToCatalog'
@@ -86,11 +85,6 @@ def mock_auth(
 
 
 # Function
-@pytest.fixture()
-def mock_context(function_name=FN_NAME):
-    '''context object'''
-    return create_lambda_function_context(function_name)
-
 @pytest.fixture()
 def mock_fn(
     mock_endpoint: str,
@@ -195,7 +189,7 @@ def test__main(
 
 def test_handler(
     mock_fn: ModuleType,
-    mock_context: LambdaContext,
+    mock_context: Callable[[str], LambdaContext],
     mock_data: Entity,
     mock_event: SQSEvent,
     mocker: MockerFixture
@@ -211,4 +205,4 @@ def test_handler(
     )
 
     mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
-    mock_fn.handler(mock_event, mock_context)
+    mock_fn.handler(mock_event, mock_context(FN_NAME))

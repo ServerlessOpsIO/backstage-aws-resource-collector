@@ -4,7 +4,7 @@ import json
 import jsonschema
 import os
 from types import ModuleType
-from typing import Generator, List
+from typing import Callable, Generator, List
 
 import pytest
 from pytest_mock import MockerFixture
@@ -18,7 +18,6 @@ from moto import mock_aws
 
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from common.test.aws import create_lambda_function_context
 
 FN_NAME = 'ListAccounts'
 DATA_DIR = './data'
@@ -125,12 +124,6 @@ def mock_account_tags(
     ).get('Tags', [])
 
 
-# Function
-@pytest.fixture()
-def mock_context(function_name=FN_NAME):
-    '''context object'''
-    return create_lambda_function_context(function_name)
-
 @pytest.fixture()
 def mock_fn(
     mock_sns_topic_arn: str,
@@ -202,9 +195,9 @@ def test__main(
 
 def test_handler(
     mock_fn: ModuleType,
-    mock_context: LambdaContext,
+    mock_context: Callable[[str], LambdaContext],
     mock_event: EventBridgeEvent,
 ):
     '''Test calling handler'''
     # Call the function
-    mock_fn.handler(mock_event, mock_context)
+    mock_fn.handler(mock_event, mock_context(FN_NAME))
