@@ -2,7 +2,7 @@
 # pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
 
 from types import ModuleType
-from typing import Callable, Generator, List
+from typing import Callable, Any, Generator, List
 import jsonschema
 
 import pytest
@@ -102,7 +102,7 @@ def mock_fn(
 
 class TestData:
     '''Data validation tests'''
-    def test_validate_event(self, mock_event, mock_event_schema):
+    def test_validate_event(self, mock_event: dict[str, Any], mock_event_schema: dict[str, Any]):
         '''Test event against schema'''
         jsonschema.Draft7Validator(mock_event, mock_event_schema)
 

@@ -5,7 +5,7 @@ import os
 import sys
 import json
 from collections import namedtuple
-from typing import TYPE_CHECKING, cast, Callable
+from typing import TYPE_CHECKING, cast, Any, Callable
 
 import pytest
 
@@ -103,7 +103,7 @@ def mock_event_data_filename(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, EVENT_DATA_FILE_NAME)
 
 @pytest.fixture()
-def mock_event_data(mock_event_data_filename) -> dict | None:
+def mock_event_data(mock_event_data_filename) -> dict[str, Any] | None:
     '''Return event data from a file'''
     if mock_event_data_filename is not None and os.path.exists(mock_event_data_filename):
         with open(mock_event_data_filename) as f:
@@ -137,7 +137,7 @@ def mock_output_file_name(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, OUTPUT_FILE_NAME)
 
 @pytest.fixture()
-def mock_output(mock_output_file_name) -> dict | None:
+def mock_output(mock_output_file_name) -> dict[str, Any] | None:
     '''Return output from a file'''
     if mock_output_file_name is not None and os.path.exists(mock_output_file_name):
         with open(mock_output_file_name) as f:
@@ -153,7 +153,7 @@ def mock_output_schema_filename(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, OUTPUT_SCHEMA_FILE_NAME)
 
 @pytest.fixture()
-def mock_output_schema(mock_output_schema_filename) -> dict | None:
+def mock_output_schema(mock_output_schema_filename) -> dict[str, Any] | None:
     '''Return output schema from a file'''
     if mock_output_schema_filename is not None and os.path.exists(mock_output_schema_filename):
         with open(mock_output_schema_filename) as f:
@@ -171,7 +171,7 @@ def mock_response_file_name(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, RESPONSE_FILE_NAME)
 
 @pytest.fixture()
-def mock_response(mock_response_file_name) -> dict | None:
+def mock_response(mock_response_file_name) -> dict[str, Any] | None:
     '''Return response from a file'''
     if mock_response_file_name is not None and os.path.exists(mock_response_file_name):
         with open(mock_response_file_name) as f:
@@ -203,7 +203,7 @@ def mock_response_data_filename(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, RESPONSE_DATA_FILE_NAME)
 
 @pytest.fixture()
-def mock_response_data(mock_response_data_filename) -> dict | None:
+def mock_response_data(mock_response_data_filename) -> dict[str, Any] | None:
     '''Return response data from a file'''
     if mock_response_data_filename is not None and os.path.exists(mock_response_data_filename):
         with open(mock_response_data_filename) as f:
@@ -219,7 +219,7 @@ def mock_response_data_schema_filename(lambda_function_name) -> str | None:
     return os.path.join(DATA_DIR, 'handlers', lambda_function_name, RESPONSE_DATA_SCHEMA_FILE_NAME)
 
 @pytest.fixture()
-def mock_response_data_schema(mock_response_data_schema_filename) -> dict | None:
+def mock_response_data_schema(mock_response_data_schema_filename) -> dict[str, Any] | None:
     '''Return response data schema from a file'''
     if mock_response_data_schema_filename is not None and os.path.exists(mock_response_data_schema_filename):
         with open(mock_response_data_schema_filename) as f:
