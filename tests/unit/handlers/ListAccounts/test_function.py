@@ -1,10 +1,11 @@
 '''Test ListAccounts'''
-from dataclasses import asdict
+# pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
+
 import json
-import jsonschema
 import os
 from types import ModuleType
 from typing import Callable, Generator, List
+import jsonschema
 
 import pytest
 from pytest_mock import MockerFixture
@@ -44,10 +45,12 @@ def event_schema(schema=EVENT_SCHEMA):
 # NOTE: Mocking AWS services must also be done before importing the function.
 @pytest.fixture()
 def mock_orgs_client(make_mocked_client: Callable) -> Generator[OrganizationsClient, None, None]:
+    '''Mock Organizations Client'''
     yield make_mocked_client('organizations')
 
 @pytest.fixture()
 def mock_sns_client(make_mocked_client: Callable) -> Generator[SNSClient, None, None]:
+    '''Mock SNS Client'''
     yield make_mocked_client('sns')
 
 @pytest.fixture()
@@ -63,10 +66,11 @@ def mock_organization(mock_orgs_client) -> None:
     mock_orgs_client.create_organization()
 
 
+#pytest.mark.usefixtures("mock_organization")
 @pytest.fixture()
 def mock_account(
     mock_orgs_client: OrganizationsClient,
-    mock_organization
+    mock_organization: None
 ) -> AccountTypeDef:
     '''Mock account'''
     account_config = {
@@ -141,9 +145,9 @@ def test__get_account_tags(
     assert account_with_tags['Tags'] == mock_account_tags
 
 
+@pytest.mark.usefixtures("mock_organization")
 def test__list_all_accounts(
     mock_fn: ModuleType,
-    mock_orgs_client: OrganizationsClient,
     mock_account: AccountTypeDef,
 ):
     '''Test _list_all_accounts function'''
