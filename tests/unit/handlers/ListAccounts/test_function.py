@@ -100,64 +100,70 @@ def mock_fn(
     yield fn
 
 
-### Data validation tests
-# FIXME: Need to handle differences between powertools event classes and the Event class
-def test_validate_event(mock_event, mock_event_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event, mock_event_schema)
+class TestData:
+    '''Data validation tests'''
+    def test_validate_event(self, mock_event, mock_event_schema):
+        '''Test event against schema'''
+        jsonschema.Draft7Validator(mock_event, mock_event_schema)
 
 
-### Code Tests
-def test__get_account_tags(
-    mock_fn: ModuleType,
-    mock_account: AccountTypeDef,
-    mock_account_tags: List[TagTypeDef],
-):
-    '''Test _get_account_tags function'''
-    account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-    assert 'Tags' in account_with_tags
-    assert len(account_with_tags['Tags']) > 0
-    assert account_with_tags['Tags'] == mock_account_tags
+class TestCode:
+    '''Code tests'''
+    def test__get_account_tags(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+        mock_account_tags: List[TagTypeDef],
+    ):
+        '''Test _get_account_tags function'''
+        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
+        assert 'Tags' in account_with_tags
+        assert len(account_with_tags['Tags']) > 0
+        assert account_with_tags['Tags'] == mock_account_tags
 
 
-@pytest.mark.usefixtures("mock_organization")
-def test__list_all_accounts(
-    mock_fn: ModuleType,
-    mock_account: AccountTypeDef,
-):
-    '''Test _list_all_accounts function'''
-    # Call the function
-    accounts = mock_fn._list_all_accounts()
-    account_ids = [account.get('Id', '') for account in accounts]
+    @pytest.mark.usefixtures("mock_organization")
+    def test__list_all_accounts(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+    ):
+        '''Test _list_all_accounts function'''
+        # Call the function
+        accounts = mock_fn._list_all_accounts()
+        account_ids = [account.get('Id', '') for account in accounts]
 
-    # Assertions
-    assert len(accounts) > 0
-    assert mock_account.get('Id') in account_ids
-
-
-def test__publish_accounts(
-    mock_fn: ModuleType,
-    mock_account: AccountTypeDef,
-):
-    '''Test _publish_accounts function'''
-    account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-    response = mock_fn._publish_accounts([account_with_tags])
-    assert len(response) > 0
+        # Assertions
+        assert len(accounts) > 0
+        assert mock_account.get('Id') in account_ids
 
 
-def test__main(
-    mock_fn: ModuleType,
-):
-    '''Test _main function'''
-    mock_fn._main()
+    def test__publish_accounts(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+    ):
+        '''Test _publish_accounts function'''
+        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
+        response = mock_fn._publish_accounts([account_with_tags])
+        assert len(response) > 0
 
 
-def test_handler(
-    lambda_function_name: str,
-    mock_fn: ModuleType,
-    mock_context: Callable[[str], LambdaContext],
-    mock_event: dict,
-):
-    '''Test calling handler'''
-    # Call the function
-    mock_fn.handler(mock_event, mock_context(lambda_function_name))
+    def test__main(
+        self,
+        mock_fn: ModuleType,
+    ):
+        '''Test _main function'''
+        mock_fn._main()
+
+
+    def test_handler(
+        self,
+        lambda_function_name: str,
+        mock_fn: ModuleType,
+        mock_context: Callable[[str], LambdaContext],
+        mock_event: dict,
+    ):
+        '''Test calling handler'''
+        # Call the function
+        mock_fn.handler(mock_event, mock_context(lambda_function_name))
