@@ -1,8 +1,6 @@
 '''Test ListAccounts'''
 # pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
 
-import json
-import os
 from types import ModuleType
 from typing import Callable, Generator, List
 import jsonschema
@@ -14,32 +12,9 @@ from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import AccountTypeDef, TagTypeDef
 from mypy_boto3_sns import SNSClient
 
-from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-FN_NAME = 'ListAccounts'
-DATA_DIR = './data'
-FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
-EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
-EVENT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event.schema.json')
-DATA = os.path.join(FUNC_DATA_DIR, 'data.json')
-DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'data.schema.json')
-
 ### Fixtures
-
-# FIXME: Need to handle differences between powertools event classes and the Event class
-# Event
-@pytest.fixture()
-def mock_event(e=EVENT) -> EventBridgeEvent:
-    '''Return a function event'''
-    with open(e) as f:
-        return EventBridgeEvent(json.load(f))
-
-@pytest.fixture()
-def event_schema(schema=EVENT_SCHEMA):
-    '''Return an event schema'''
-    with open(schema) as f:
-        return json.load(f)
 # AWS Clients
 #
 # NOTE: Mocking AWS services must also be done before importing the function.
@@ -127,9 +102,9 @@ def mock_fn(
 
 ### Data validation tests
 # FIXME: Need to handle differences between powertools event classes and the Event class
-def test_validate_event(mock_event, event_schema):
+def test_validate_event(mock_event, mock_event_schema):
     '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event._data, event_schema)
+    jsonschema.Draft7Validator(mock_event, mock_event_schema)
 
 
 ### Code Tests
@@ -181,7 +156,7 @@ def test_handler(
     lambda_function_name: str,
     mock_fn: ModuleType,
     mock_context: Callable[[str], LambdaContext],
-    mock_event: EventBridgeEvent,
+    mock_event: dict,
 ):
     '''Test calling handler'''
     # Call the function
