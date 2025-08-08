@@ -1,10 +1,9 @@
-name: Feature Branch
+name: Branches
 on:
   workflow_dispatch:
   push:
-    branches:
-      - feature/*
-      - fix/*
+    branches-ignore:
+      - 'main'
 
 jobs:
   build:
