@@ -1,3 +1,6 @@
+'''Unit test mocks'''
+# pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
+
 import os
 from typing import Callable, Generator
 
