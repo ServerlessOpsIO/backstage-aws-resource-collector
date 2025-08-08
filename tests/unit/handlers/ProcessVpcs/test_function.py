@@ -1,10 +1,11 @@
 '''Test ProcessVpcs'''
+# pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
+
 import json
-import jsonschema
-import os
 from time import time
 from types import ModuleType
-from typing import Callable, Generator, List
+from typing import Any, Callable, Generator
+import jsonschema
 
 import pytest
 from pytest_mock import MockerFixture
@@ -14,46 +15,10 @@ from mypy_boto3_ec2 import EC2Client
 from mypy_boto3_ec2.type_defs import VpcTypeDef
 from mypy_boto3_sqs import SQSClient
 
-from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from common.model.account import AccountTypeWithTags
 from common.util.jwt import AUTH_ENDPOINT, JwtAuth
-
-FN_NAME = 'ProcessVpcs'
-DATA_DIR = './data'
-FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
-EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
-EVENT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event.schema.json')
-DATA = os.path.join(FUNC_DATA_DIR, 'data.json')
-DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'data.schema.json')
-
-### Fixtures
-# Mock data
-@pytest.fixture()
-def mock_data(e=DATA) -> AccountTypeWithTags:
-    '''Return event data object'''
-    with open(e) as f:
-        return AccountTypeWithTags(**json.load(f))
-
-@pytest.fixture()
-def data_schema(schema=DATA_SCHEMA):
-    '''Return an data schema'''
-    with open(schema) as f:
-        return json.load(f)
-
-@pytest.fixture()
-def mock_event(e=EVENT) -> SQSEvent:
-    '''Return a function event'''
-    with open(e) as f:
-        return SQSEvent(json.load(f))
-
-@pytest.fixture()
-def event_schema(schema=EVENT_SCHEMA):
-    '''Return an event schema'''
-    with open(schema) as f:
-        return json.load(f)
-
 
 # AWS
 @pytest.fixture()
@@ -161,132 +126,136 @@ def mock_fn(
         yield fn
 
 
-### Data validation tests
-def test_validate_data(mock_data, data_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_data, data_schema)
+class TestData:
+    '''Data validation tests'''
+    def test_validate_data(self, mock_event_data: dict[str, Any], mock_event_data_schema: dict[str, Any]):
+        '''Test event against schema'''
+        jsonschema.Draft7Validator(mock_event_data, mock_event_data_schema)
 
-def test_validate_event(mock_event, event_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event._data, event_schema)
-
-
-### Code Tests
-def test_GetSystemOwnerError(mock_fn: ModuleType):
-    '''Test GetSystemOwnerError class'''
-    e = mock_fn.GetSystemOwnerError('TestSystem')
-    assert str(e) == 'Failed to get owner for system: TestSystem'
-
-def test__create_vpc_entity(
-    mock_fn: ModuleType,
-    mock_vpc: VpcTypeDef,
-    mock_auth: JwtAuth,
-    mocker: MockerFixture
-):
-    '''Test _get_entity_data function'''
-    mocker.patch(
-        'src.handlers.ProcessVpcs.function._get_system_owner',
-        return_value='owner'
-    )
-
-    vpc_id = mock_vpc.get('VpcId')
-    account_id = '123456789012'
-    region = 'us-east-1'
-
-    entity = mock_fn._create_vpc_entity(mock_vpc, account_id, region, 'MockSystem', mock_auth)
-    assert entity['kind'] == 'Resource'
-    assert entity['metadata']['name'] == 'ec2-vpc-{}'.format(vpc_id)
-    assert entity['metadata']['title'] == vpc_id
-    assert entity['metadata']['description'] == 'VPC {} in account {}'.format(vpc_id, account_id)
-    assert entity['metadata']['annotations']['aws.amazon.com/account-id'] == account_id
-    assert entity['metadata']['annotations']['aws.amazon.com/arn'] == 'arn:aws:ec2:{}:{}:vpc/{}'.format(region, account_id, vpc_id)
-    assert entity['metadata']['annotations']['aws.amazon.com/owner-account-id'] == mock_vpc.get('OwnerId', 'UNKNOWN')
-    assert entity['metadata']['annotations']['aws.amazon.com/region'] == region
+    def test_validate_event(self, mock_event: dict[str, Any], mock_event_schema: dict[str, Any]):
+        '''Test event against schema'''
+        jsonschema.Draft7Validator(mock_event, mock_event_schema)
 
 
-def test__get_system_owner(
-    mock_fn: ModuleType,
-    mock_auth: AccountTypeWithTags,
-    requests_mocker: requests_mock.Mocker,
-):
-    '''Test _get_system_owner function'''
-    requests_mocker.register_uri(
-        requests_mock.GET,
-        requests_mock.ANY,
-        status_code=200,
-        json={'spec': {'owner': 'owner'}}
-    )
-    owner = mock_fn._get_system_owner('mock_system', mock_auth,)
-    assert owner == 'owner'
+class TestCode:
+    '''Code tests'''
+    def test_GetSystemOwnerError(self, mock_fn: ModuleType):
+        '''Test GetSystemOwnerError class'''
+        e = mock_fn.GetSystemOwnerError('TestSystem')
+        assert str(e) == 'Failed to get owner for system: TestSystem'
 
-def test__get_system_owner_fails(
-    mock_fn: ModuleType,
-    mock_auth: AccountTypeWithTags,
-    requests_mocker: requests_mock.Mocker,
-):
-    '''Test _get_system_owner function'''
-    requests_mocker.register_uri(
-        requests_mock.GET,
-        requests_mock.ANY,
-        status_code=403,
-    )
-    with pytest.raises(mock_fn.GetSystemOwnerError):
-        mock_fn._get_system_owner('mock_system', mock_auth,)
+    def test__create_vpc_entity(
+        self,
+        mock_fn: ModuleType,
+        mock_vpc: VpcTypeDef,
+        mock_auth: JwtAuth,
+        mocker: MockerFixture
+    ):
+        '''Test _create_vpc_entity function'''
+        mocker.patch(
+            'src.handlers.ProcessVpcs.function._get_system_owner',
+            return_value='owner'
+        )
 
+        vpc_id = mock_vpc.get('VpcId')
+        account_id = '123456789012'
+        region = 'us-east-1'
 
-def test__send_queue_message(
-    mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
-):
-    '''Test _send_queue_message function'''
-    response = mock_fn._send_queue_message(mock_data)
-    assert response['ResponseMetadata']['HTTPStatusCode'] == 200
+        entity = mock_fn._create_vpc_entity(mock_vpc, account_id, region, 'MockSystem', mock_auth)
+        assert entity['kind'] == 'Resource'
+        assert entity['metadata']['name'] == 'ec2-vpc-{}'.format(vpc_id)
+        assert entity['metadata']['title'] == vpc_id
+        assert entity['metadata']['description'] == 'VPC {} in account {}'.format(vpc_id, account_id)
+        assert entity['metadata']['annotations']['aws.amazon.com/account-id'] == account_id
+        assert entity['metadata']['annotations']['aws.amazon.com/arn'] == 'arn:aws:ec2:{}:{}:vpc/{}'.format(region, account_id, vpc_id)
+        assert entity['metadata']['annotations']['aws.amazon.com/owner-account-id'] == mock_vpc.get('OwnerId', 'UNKNOWN')
+        assert entity['metadata']['annotations']['aws.amazon.com/region'] == region
 
+    def test__get_system_owner(
+        self,
+        mock_fn: ModuleType,
+        mock_auth: AccountTypeWithTags,
+        requests_mocker: requests_mock.Mocker,
+    ):
+        '''Test _get_system_owner function'''
+        requests_mocker.register_uri(
+            requests_mock.GET,
+            requests_mock.ANY,
+            status_code=200,
+            json={'spec': {'owner': 'owner'}}
+        )
+        owner = mock_fn._get_system_owner('mock_system', mock_auth,)
+        assert owner == 'owner'
 
-def test__main(
-    mock_fn: ModuleType,
-    mock_data: AccountTypeWithTags,
-    mocker: MockerFixture
-):
-    '''Test _main function'''
-    mocker.patch.object(
-        mock_fn,
-        'JwtAuth',
-        client_id='clientId',
-        client_secret='clientSecret',
-        token='token'
-    )
+    def test__get_system_owner_fails(
+        self,
+        mock_fn: ModuleType,
+        mock_auth: AccountTypeWithTags,
+        requests_mocker: requests_mock.Mocker,
+    ):
+        '''Test _get_system_owner function'''
+        requests_mocker.register_uri(
+            requests_mock.GET,
+            requests_mock.ANY,
+            status_code=403,
+        )
+        with pytest.raises(mock_fn.GetSystemOwnerError):
+            mock_fn._get_system_owner('mock_system', mock_auth,)
 
-    mocker.patch(
-        'src.handlers.ProcessVpcs.function._get_system_owner',
-        return_value='owner'
-    )
+    def test__send_queue_message(
+        self,
+        mock_fn: ModuleType,
+        mock_event_data: AccountTypeWithTags,
+    ):
+        '''Test _send_queue_message function'''
+        response = mock_fn._send_queue_message(mock_event_data)
+        assert response['ResponseMetadata']['HTTPStatusCode'] == 200
 
-    mock_fn._main(mock_data)
+    def test__main(
+        self,
+        mock_fn: ModuleType,
+        mock_event_data: AccountTypeWithTags,
+        mocker: MockerFixture
+    ):
+        '''Test _main function'''
+        mocker.patch.object(
+            mock_fn,
+            'JwtAuth',
+            client_id='clientId',
+            client_secret='clientSecret',
+            token='token'
+        )
 
+        mocker.patch(
+            'src.handlers.ProcessVpcs.function._get_system_owner',
+            return_value='owner'
+        )
 
-def test_handler(
-    lambda_function_name: str,
-    mock_fn: ModuleType,
-    mock_context: Callable[[str], LambdaContext],
-    mock_data: AccountTypeWithTags,
-    mock_event: SQSEvent,
-    mocker: MockerFixture
-):
-    '''Test calling handler'''
-    # Call the function
-    mocker.patch.object(
-        mock_fn,
-        'JwtAuth',
-        client_id='clientId',
-        client_secret='clientSecret',
-        token='token'
-    )
+        mock_fn._main(mock_event_data)
 
-    mocker.patch(
-        'src.handlers.ProcessVpcs.function._get_system_owner',
-        return_value='owner'
-    )
+    def test_handler(
+        self,
+        lambda_function_name: str,
+        mock_fn: ModuleType,
+        mock_context: Callable[[str], LambdaContext],
+        mock_event_data: AccountTypeWithTags,
+        mock_event: dict[str, Any],
+        mocker: MockerFixture
+    ):
+        '''Test calling handler'''
+        # Call the function
+        mocker.patch.object(
+            mock_fn,
+            'JwtAuth',
+            client_id='clientId',
+            client_secret='clientSecret',
+            token='token'
+        )
 
-    mock_event._data['Records'][0]['body'] = json.dumps(mock_data)
-    mock_fn.handler(mock_event, mock_context(lambda_function_name))
+        mocker.patch(
+            'src.handlers.ProcessVpcs.function._get_system_owner',
+            return_value='owner'
+        )
+
+        mock_event['Records'][0]['body'] = json.dumps(mock_event_data)
+        mock_fn.handler(mock_event, mock_context(lambda_function_name))
