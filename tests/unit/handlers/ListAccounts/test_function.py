@@ -1,75 +1,32 @@
 '''Test ListAccounts'''
-from dataclasses import asdict
-import json
-import jsonschema
-import os
+# pylint: disable=redefined-outer-name, protected-access, import-outside-toplevel, unused-argument
+
 from types import ModuleType
-from typing import Generator, List
+from typing import Callable, Any, Generator, List
+import jsonschema
 
 import pytest
 from pytest_mock import MockerFixture
 
-
-import boto3
 from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import AccountTypeDef, TagTypeDef
 from mypy_boto3_sns import SNSClient
-from moto import mock_aws
 
-from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from common.test.aws import create_lambda_function_context
-
-FN_NAME = 'ListAccounts'
-DATA_DIR = './data'
-FUNC_DATA_DIR = os.path.join(DATA_DIR, 'handlers', FN_NAME)
-EVENT = os.path.join(FUNC_DATA_DIR, 'event.json')
-EVENT_SCHEMA = os.path.join(FUNC_DATA_DIR, 'event.schema.json')
-DATA = os.path.join(FUNC_DATA_DIR, 'data.json')
-DATA_SCHEMA = os.path.join(FUNC_DATA_DIR, 'data.schema.json')
 
 ### Fixtures
-
-# FIXME: Need to handle differences between powertools event classes and the Event class
-# Event
-@pytest.fixture()
-def mock_event(e=EVENT) -> EventBridgeEvent:
-    '''Return a function event'''
-    with open(e) as f:
-        return EventBridgeEvent(json.load(f))
-
-@pytest.fixture()
-def event_schema(schema=EVENT_SCHEMA):
-    '''Return an event schema'''
-    with open(schema) as f:
-        return json.load(f)
 # AWS Clients
 #
 # NOTE: Mocking AWS services must also be done before importing the function.
 @pytest.fixture()
-def aws_credentials() -> None:
-    '''Mocked AWS Credentials for moto.'''
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+def mock_orgs_client(make_mocked_client: Callable) -> Generator[OrganizationsClient, None, None]:
+    '''Mock Organizations Client'''
+    yield make_mocked_client('organizations')
 
 @pytest.fixture()
-def mocked_aws(aws_credentials):
-    '''Mock all AWS interactions'''
-    with mock_aws():
-        yield
-
-@pytest.fixture()
-def mock_orgs_client(mocked_aws) -> Generator[OrganizationsClient, None, None]:
-    orgs_client = boto3.client('organizations')
-    yield orgs_client
-
-@pytest.fixture()
-def mock_sns_client(mocked_aws) -> Generator[SNSClient, None, None]:
-    sns_client = boto3.client('sns')
-    yield sns_client
+def mock_sns_client(make_mocked_client: Callable) -> Generator[SNSClient, None, None]:
+    '''Mock SNS Client'''
+    yield make_mocked_client('sns')
 
 @pytest.fixture()
 def mock_sns_topic_arn(mock_sns_client) -> str:
@@ -84,10 +41,11 @@ def mock_organization(mock_orgs_client) -> None:
     mock_orgs_client.create_organization()
 
 
+#pytest.mark.usefixtures("mock_organization")
 @pytest.fixture()
 def mock_account(
     mock_orgs_client: OrganizationsClient,
-    mock_organization
+    mock_organization: None
 ) -> AccountTypeDef:
     '''Mock account'''
     account_config = {
@@ -125,12 +83,6 @@ def mock_account_tags(
     ).get('Tags', [])
 
 
-# Function
-@pytest.fixture()
-def mock_context(function_name=FN_NAME):
-    '''context object'''
-    return create_lambda_function_context(function_name)
-
 @pytest.fixture()
 def mock_fn(
     mock_sns_topic_arn: str,
@@ -148,63 +100,70 @@ def mock_fn(
     yield fn
 
 
-### Data validation tests
-# FIXME: Need to handle differences between powertools event classes and the Event class
-def test_validate_event(mock_event, event_schema):
-    '''Test event against schema'''
-    jsonschema.Draft7Validator(mock_event._data, event_schema)
+class TestData:
+    '''Data validation tests'''
+    def test_validate_event(self, mock_event: dict[str, Any], mock_event_schema: dict[str, Any]):
+        '''Test event against schema'''
+        jsonschema.Draft7Validator(mock_event, mock_event_schema)
 
 
-### Code Tests
-def test__get_account_tags(
-    mock_fn: ModuleType,
-    mock_account: AccountTypeDef,
-    mock_account_tags: List[TagTypeDef],
-):
-    '''Test _get_account_tags function'''
-    account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-    assert 'Tags' in account_with_tags
-    assert len(account_with_tags['Tags']) > 0
-    assert account_with_tags['Tags'] == mock_account_tags
+class TestCode:
+    '''Code tests'''
+    def test__get_account_tags(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+        mock_account_tags: List[TagTypeDef],
+    ):
+        '''Test _get_account_tags function'''
+        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
+        assert 'Tags' in account_with_tags
+        assert len(account_with_tags['Tags']) > 0
+        assert account_with_tags['Tags'] == mock_account_tags
 
 
-def test__list_all_accounts(
-    mock_fn: ModuleType,
-    mock_orgs_client: OrganizationsClient,
-    mock_account: AccountTypeDef,
-):
-    '''Test _list_all_accounts function'''
-    # Call the function
-    accounts = mock_fn._list_all_accounts()
-    account_ids = [account.get('Id', '') for account in accounts]
+    @pytest.mark.usefixtures("mock_organization")
+    def test__list_all_accounts(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+    ):
+        '''Test _list_all_accounts function'''
+        # Call the function
+        accounts = mock_fn._list_all_accounts()
+        account_ids = [account.get('Id', '') for account in accounts]
 
-    # Assertions
-    assert len(accounts) > 0
-    assert mock_account.get('Id') in account_ids
-
-
-def test__publish_accounts(
-    mock_fn: ModuleType,
-    mock_account: AccountTypeDef,
-):
-    '''Test _publish_accounts function'''
-    account_with_tags = mock_fn._get_account_tags([mock_account])[0]
-    response = mock_fn._publish_accounts([account_with_tags])
-    assert len(response) > 0
+        # Assertions
+        assert len(accounts) > 0
+        assert mock_account.get('Id') in account_ids
 
 
-def test__main(
-    mock_fn: ModuleType,
-):
-    '''Test _main function'''
-    mock_fn._main()
+    def test__publish_accounts(
+        self,
+        mock_fn: ModuleType,
+        mock_account: AccountTypeDef,
+    ):
+        '''Test _publish_accounts function'''
+        account_with_tags = mock_fn._get_account_tags([mock_account])[0]
+        response = mock_fn._publish_accounts([account_with_tags])
+        assert len(response) > 0
 
 
-def test_handler(
-    mock_fn: ModuleType,
-    mock_context: LambdaContext,
-    mock_event: EventBridgeEvent,
-):
-    '''Test calling handler'''
-    # Call the function
-    mock_fn.handler(mock_event, mock_context)
+    def test__main(
+        self,
+        mock_fn: ModuleType,
+    ):
+        '''Test _main function'''
+        mock_fn._main()
+
+
+    def test_handler(
+        self,
+        lambda_function_name: str,
+        mock_fn: ModuleType,
+        mock_context: Callable[[str], LambdaContext],
+        mock_event: dict,
+    ):
+        '''Test calling handler'''
+        # Call the function
+        mock_fn.handler(mock_event, mock_context(lambda_function_name))
