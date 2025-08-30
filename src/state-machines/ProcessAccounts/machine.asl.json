@@ -1,0 +1,172 @@
+{
+    "Comment": "Process AWS Organization Accounts for Backstage Catalog",
+    "StartAt": "GetOrganizationAccounts",
+    "States": {
+        "GetOrganizationAccounts": {
+            "Type": "Task",
+            "Comment": "Get list of accounts in AWS org",
+            "Resource": "arn:aws:states:::aws-sdk:organizations:listAccounts",
+            "Parameters": {},
+            "ResultPath": "$.accounts",
+            "Next": "ProcessAccounts",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "HandleError",
+                    "ResultPath": "$.error"
+                }
+            ]
+        },
+        "ProcessAccounts": {
+            "Type": "Map",
+            "Comment": "Process each account to create Backstage entity and send to catalog",
+            "ItemsPath": "$.accounts.Accounts",
+            "MaxConcurrency": 5,
+            "Parameters": {
+                "catalogEndpoint": "${CatalogEndpoint}",
+                "connectionArn": "${ConnectionArn}",
+                "account.$": "$"
+            },
+            "Iterator": {
+                "StartAt": "InitializeBackstageEntityObject",
+                "States": {
+                    "InitializeBackstageEntityObject": {
+                        "Type": "Pass",
+                        "Comment": "Create initial entity object",
+                        "Assign": {
+                            "BackstageEntity.apiVersion": "backstage.io/v1alpha1",
+                            "BackstageEntity.kind": "Resource",
+                            "BackstageEntity.metadata.namespace": "default",
+                            "BackstageEntity.metadata.name.$": "States.Format('aws-{}', $.Id)",
+                            "BackstageEntity.metadata.title.$": "$.Id",
+                            "BackstageEntity.metadata.description.$": "$.Name",
+                            "BackstageEntity.metadata.annotations.serverlessops\\.io/cloud-provider": "aws",
+                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/account-id.$": "$.Id",
+                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/account-email.$": "$.Email",
+                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/arn.$": "$.Arn",
+                            "BackstageEntity.metadata.links[0].url": "https://serverlessops.awsapps.com",
+                            "BackstageEntity.metadata.links[0].title": "AWS Console",
+                            "BackstageEntity.metadata.links[0].type": "admin-console",
+                            "BackstageEntity.metadata.links[0].icon": "aws",
+                            "BackstageEntity.spec.type": "cloud-account",
+                            "BackstageEntity.spec.owner": "UNKNOWN",
+                            "BackstageEntity.spec.system": "UNKNOWN",
+                            "BackstageEntity.spec.lifecycle.$": "$.Status"
+                        },
+                        "Next": "GetAccountTags"
+                    },
+                    "GetAccountTags": {
+                        "Type": "Task",
+                        "Comment": "Get tags for the account",
+                        "Resource": "arn:aws:states:::aws-sdk:organizations:listTagsForResource",
+                        "Parameters": {
+                            "ResourceId.$": "$.Id"
+                        },
+                        "Assign": {
+                            "BackstageEntity.spec.system.$": "States.ArrayGetItem(States.ArrayGetItem(States.StringToJson(States.JsonToString($.Tags[?(@.Key=='org:system')])), 0).Value, 0)"
+                        },
+                        "Next": "GetSystemOwner",
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "Next": "LogAccountError",
+                                "ResultPath": "$.tagError"
+                            }
+                        ]
+                    },
+                    "GetSystemOwner": {
+                        "Type": "Task",
+                        "Comment": "Get system owner for the account from catalog",
+                        "Resource": "arn:aws:states:::http:invoke",
+                        "Parameters": {
+                            "Method": "GET",
+                            "ApiEndpoint.$": "States.Format('{}/default/system/{}', $.catalogEndpoint, $.BackstageEntity.spec.system)",
+                            "Authentication": {
+                                "ConnectionArn": "connectionArn"
+                            }
+                        },
+                        "Assign": {
+                            "BackstageEntity.spec.owner.$": "$.ResponseBody.spec.owner"
+                        },
+                        "Next": "SendToCatalog",
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "Next": "LogAccountError",
+                                "ResultPath": "$.ownerError"
+                            }
+                        ]
+                    },
+                    "SendToCatalog": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::http:invoke",
+                        "Parameters": {
+                            "Method": "POST",
+                            "ApiEndpoint.$": "States.Format('{}/entities', $.catalogEndpoint)",
+                            "RequestBody.$": "$.BackstageEntity",
+                            "Authentication": {
+                                "ConnectionArn": "connectionArn"
+                            },
+                            "Headers": {
+                                "Content-Type": "application/json"
+                            }
+                        },
+                        "ResultPath": "$.CatalogResponse",
+                        "End": true,
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "Next": "LogAccountError",
+                                "ResultPath": "$.catalogError"
+                            }
+                        ]
+                    },
+                    "LogAccountError": {
+                        "Type": "Pass",
+                        "Parameters": {
+                            "error": "Failed to process account",
+                            "accountId.$": "$.Id",
+                            "errorDetails.$": "$"
+                        },
+                        "End": true
+                    }
+                }
+            },
+            "Next": "ProcessingComplete",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "HandleError",
+                    "ResultPath": "$.mapError"
+                }
+            ]
+        },
+        "ProcessingComplete": {
+            "Type": "Pass",
+            "Result": {
+                "status": "SUCCESS",
+                "message": "Successfully processed all accounts"
+            },
+            "End": true
+        },
+        "HandleError": {
+            "Type": "Pass",
+            "Parameters": {
+                "status": "ERROR",
+                "error.$": "$.error",
+                "message": "Failed to process organization accounts"
+            },
+            "End": true
+        }
+    }
+}

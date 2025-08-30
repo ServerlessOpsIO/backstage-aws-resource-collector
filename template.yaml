@@ -1,7 +1,3 @@
-Metadata:
-  ProcessAccountsStateMachine:
-    localTemplateFile: &process_accounts_state_machine_body ./src/state-machines/ProcessAccounts/machine.asl.json
-
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
@@ -27,6 +23,10 @@ Parameters:
   CatalogEndpoint:
     Type: String
     Description: "Catalog endpoint"
+
+  ClientAuthEndpoint:
+    Type: String
+    Description: "Client Auth Endpoint"
 
   ClientId:
     Type: String
@@ -89,3 +89,46 @@ Resources:
                 "aws:PrincipalOrgID": !Ref AwsOrganizationId
       DeadLetterConfig:
         Arn: !GetAtt AwsResourceCollectorDlq.Arn
+
+  CatalogConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      Description: "Connection for Catalog API"
+      AuthorizationType: "OAUTH_CLIENT_CREDENTIALS"
+      AuthParameters:
+        OAuthParameters:
+          AuthorizationEndpoint: !Ref ClientAuthEndpoint
+          HttpMethod: POST
+          ClientParameters:
+            ClientID: !Ref ClientId
+            ClientSecret: !Ref ClientSecret
+          OAuthHttpParameters:
+            BodyParameters:
+              - Key: "grant_type"
+                Value: "client_credentials"
+
+
+  # Step Functions
+  ## Process Accounts
+  ProcessAccountsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./src/state-machines/ProcessAccounts/machine.asl.json
+      DefinitionSubstitutions:
+        CatalogEndpoint: !Ref CatalogEndpoint
+        ConnectionArn: !GetAtt CatalogConnection.Arn
+      Policies:
+        - AWSOrganizationsReadOnlyAccess
+      Logging:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ProcessAccountsStateMachineLogGroup.Arn
+      PropagateTags: True
+
+  ProcessAccountsStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/step-functions/${AWS::StackName}-ProcessAccountsStateMachine
+      RetentionInDays: 7
