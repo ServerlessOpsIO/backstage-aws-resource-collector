@@ -36,24 +36,36 @@
                         "Type": "Pass",
                         "Comment": "Create initial entity object",
                         "Assign": {
-                            "BackstageEntity.apiVersion": "backstage.io/v1alpha1",
-                            "BackstageEntity.kind": "Resource",
-                            "BackstageEntity.metadata.namespace": "default",
-                            "BackstageEntity.metadata.name.$": "States.Format('aws-{}', $.Id)",
-                            "BackstageEntity.metadata.title.$": "$.Id",
-                            "BackstageEntity.metadata.description.$": "$.Name",
-                            "BackstageEntity.metadata.annotations.serverlessops\\.io/cloud-provider": "aws",
-                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/account-id.$": "$.Id",
-                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/account-email.$": "$.Email",
-                            "BackstageEntity.metadata.annotations.aws\\.amazon\\.com/arn.$": "$.Arn",
-                            "BackstageEntity.metadata.links[0].url": "https://serverlessops.awsapps.com",
-                            "BackstageEntity.metadata.links[0].title": "AWS Console",
-                            "BackstageEntity.metadata.links[0].type": "admin-console",
-                            "BackstageEntity.metadata.links[0].icon": "aws",
-                            "BackstageEntity.spec.type": "cloud-account",
-                            "BackstageEntity.spec.owner": "UNKNOWN",
-                            "BackstageEntity.spec.system": "UNKNOWN",
-                            "BackstageEntity.spec.lifecycle.$": "$.Status"
+                            "BackstageEntity": {
+                                "apiVersion": "backstage.io/v1alpha1",
+                                "kind": "Resource",
+                                "metadata": {
+                                    "namespace": "default",
+                                    "name.$": "States.Format('aws-{}', $.Id)",
+                                    "title.$": "$.Id",
+                                    "description.$": "$.Name",
+                                    "annotations": {
+                                        "serverlessops\\.io/cloud-provider": "aws",
+                                        "aws\\.amazon\\.com/account-id.$": "$.Id",
+                                        "aws\\.amazon\\.com/account-email.$": "$.Email",
+                                        "aws\\.amazon\\.com/arn.$": "$.Arn"
+                                    },
+                                    "links": [
+                                        {
+                                            "title": "AWS Console",
+                                            "url": "https://serverlessops.awsapps.com",
+                                            "type": "admin-console",
+                                            "icon": "aws"
+                                        }
+                                    ]
+                                },
+                                "spec": {
+                                    "type": "cloud-account",
+                                    "owner": "UNKNOWN",
+                                    "system": "UNKNOWN",
+                                    "lifecycle.$": "$.Status"
+                                }
+                            }
                         },
                         "Next": "GetAccountTags"
                     },
@@ -65,7 +77,11 @@
                             "ResourceId.$": "$.Id"
                         },
                         "Assign": {
-                            "BackstageEntity.spec.system.$": "States.ArrayGetItem(States.ArrayGetItem(States.StringToJson(States.JsonToString($.Tags[?(@.Key=='org:system')])), 0).Value, 0)"
+                            "BackstageEntity": {
+                                "spec": {
+                                    "system.$": "States.ArrayGetItem(States.ArrayGetItem(States.StringToJson(States.JsonToString($.Tags[?(@.Key=='org:system')])), 0).Value, 0)"
+                                }
+                            }
                         },
                         "Next": "GetSystemOwner",
                         "Catch": [
@@ -90,7 +106,11 @@
                             }
                         },
                         "Assign": {
-                            "BackstageEntity.spec.owner.$": "$.ResponseBody.spec.owner"
+                            "BackstageEntity": {
+                                "spec": {
+                                    "owner.$": "$.ResponseBody.spec.owner"
+                                }
+                            }
                         },
                         "Next": "SendToCatalog",
                         "Catch": [
