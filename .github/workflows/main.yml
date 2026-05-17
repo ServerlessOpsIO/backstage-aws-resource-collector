@@ -58,7 +58,7 @@ jobs:
         run: |
           sam package \
             --template stacksets.yaml \
-            --s3-bucket aws-sam-cli-sourcebucket-225989329251-us-east-1  \
+            --s3-bucket aws-sam-cli-sourcebucket-774305573766-us-east-1  \
             --s3-prefix ${{ env.GITHUB_REPOSITORY_OWNER_PART_SLUG_URL }}/${{ env.GITHUB_REPOSITORY_NAME_PART_SLUG_URL }}/${{ env.GITHUB_REF_SLUG_URL }} \
             --region us-east-1 \
             --output-template-file packaged-stacksets.yaml
